@@ -879,7 +879,7 @@ function restartSession(){S.cq=0;S.answers=[];S.scores=[];S.selfR=[];S.transcrip
 
 /* CLAUDE */
 async function claude(messages,maxTokens=400){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,system:PROFILE,messages})});
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-3-haiku-20240307',max_tokens:maxTokens,system:PROFILE,messages})});
   if(!r.ok)throw new Error(`API ${r.status}`);
   return (await r.json()).content[0].text;
 }
