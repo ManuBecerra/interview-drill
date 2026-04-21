@@ -844,7 +844,12 @@ async function transcribeAudio(){
   try{
     const res=await fetch(location.href,{method:'POST',body:fd});
     const data=await res.json();
-    if(!res.ok||data.error)throw new Error(data.error||`HTTP ${res.status}`);
+    const errMsg=typeof data.error==='string'
+      ? data.error
+      : data.error?.message || data.error?.error?.message || data.message || '';
+    if(!res.ok||data.error){
+      throw new Error(errMsg || `Transcription failed (HTTP ${res.status})`);
+    }
     const text=(data.text||'').trim();
     S.finalTranscript=text;
     S.transcript=text;
@@ -856,7 +861,7 @@ async function transcribeAudio(){
   }catch(e){
     console.error('Transcription failed:',e);
     $('rec-status-text').textContent=S.lang==='de'?'Transkription fehlgeschlagen':'Transcription failed';
-    alert(e.message||'Transcription failed');
+    alert(e?.message || 'Transcription failed');
   }finally{
     stopRec();
     S.transcribing=false;
