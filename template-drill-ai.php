@@ -1,5 +1,44 @@
 <?php
 /* Template Name: Interview Drill AI Safe */
+if($_SERVER['REQUEST_METHOD']==='POST' && (($_POST['action'] ?? '')==='transcribe')){
+  header('Content-Type: application/json; charset=utf-8');
+  $apiKey=trim($_POST['openai_key'] ?? '');
+  if($apiKey===''){
+    http_response_code(400);
+    echo json_encode(['error'=>'Missing OpenAI API key']);
+    exit;
+  }
+  if(empty($_FILES['audio']['tmp_name']) || !is_uploaded_file($_FILES['audio']['tmp_name'])){
+    http_response_code(400);
+    echo json_encode(['error'=>'Missing audio upload']);
+    exit;
+  }
+  $ch=curl_init('https://api.openai.com/v1/audio/transcriptions');
+  $payload=[
+    'model'=>'gpt-4o-mini-transcribe',
+    'file'=>new CURLFile($_FILES['audio']['tmp_name'], $_FILES['audio']['type'] ?: 'audio/webm', $_FILES['audio']['name'] ?: 'answer.webm'),
+  ];
+  curl_setopt_array($ch,[
+    CURLOPT_POST=>true,
+    CURLOPT_POSTFIELDS=>$payload,
+    CURLOPT_RETURNTRANSFER=>true,
+    CURLOPT_HTTPHEADER=>[
+      'Authorization: Bearer '.$apiKey,
+    ],
+  ]);
+  $raw=curl_exec($ch);
+  $status=curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
+  $err=curl_error($ch);
+  curl_close($ch);
+  if($raw===false){
+    http_response_code(500);
+    echo json_encode(['error'=>$err ?: 'OpenAI transcription failed']);
+    exit;
+  }
+  http_response_code($status?:200);
+  echo $raw;
+  exit;
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -227,6 +266,15 @@ h2{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;margin-bot
   </div>
 
   <div class="card">
+    <span class="slabel">OpenAI transcription key</span>
+    <div class="api-row">
+      <input type="password" id="oa-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <button class="api-eye" onclick="toggleOAKey()">&#128065;</button>
+    </div>
+    <p class="hint">Used only to transcribe voice answers with GPT-4o mini Transcribe.</p>
+  </div>
+
+  <div class="card">
     <span class="slabel">Job description (optional)</span>
     <textarea id="jd-input" rows="3" placeholder="Paste the role and responsibilities. Leave blank for standard PM questions."></textarea>
   </div>
@@ -420,7 +468,7 @@ const T={
   de:{load:'Fragen werden vorbereitet',lmsg:'Rolle wird analysiert...',ready:'Bereit — tippe zum Aufnehmen',rec:'Aufnahme läuft — sprich jetzt',stop:'Aufnahme stoppen',start:'Aufnahme starten',rerec:'Neu aufnehmen',done:'Fertig — prüfen oder absenden',getfb:'Feedback anzeigen →',next:'Nächste Frage →',retry:'Nochmal versuchen',skip:'Überspringen →',hint:'Min 30s · Ziel 60–90s · Stop bei 2min',srt:'Erst selbst bewerten',srs:'Bevor du das KI-Feedback siehst — wie schätzt du dich ein?',seefb:'KI-Feedback →',fbl:'Feedback',ansl:'Deine Antwort',scoring:'Antwort wird bewertet...',complete:'Session abgeschlossen',patterns:'Muster dieser Session',priority:'Priorität für morgen',newsess:'Neue Session →',drillw:'Schwächstes üben →',timer:'Timer starten'}
 };
 
-let S={mode:'full',input:'voice',lang:'en',key:'',jd:'',questions:[],cq:0,total:5,answers:[],scores:[],selfR:[],sessStart:null,timerInt:null,timerSec:0,recog:null,transcript:'',finalTranscript:'',recording:false,stopRequested:false,actx:null,analyser:null,raf:null,wk:{own:0,met:0,hed:0,str:0,len:0},selfRat:{}};
+let S={mode:'full',input:'voice',lang:'en',key:'',oaKey:'',jd:'',questions:[],cq:0,total:5,answers:[],scores:[],selfR:[],sessStart:null,timerInt:null,timerSec:0,recog:null,recorder:null,audioStream:null,audioChunks:[],transcript:'',finalTranscript:'',recording:false,stopRequested:false,transcribing:false,actx:null,analyser:null,raf:null,wk:{own:0,met:0,hed:0,str:0,len:0},selfRat:{}};
 
 const QUESTION_META={
   en:[
@@ -563,6 +611,7 @@ function clearHistory(){if(confirm('Reset all history?')){localStorage.removeIte
 /* SETUP */
 function $(id){return document.getElementById(id)}
 function toggleKey(){const i=$('api-key');i.type=i.type==='password'?'text':'password';}
+function toggleOAKey(){const i=$('oa-key');i.type=i.type==='password'?'text':'password';}
 function selectMode(el,m){qsa('[data-mode]').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');S.mode=m;S.total=m==='quick'?3:5;}
 function selectLang(el,l){qsa('[data-lang]').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');S.lang=l;}
 function selectInput(el,m){qsa('[data-input]').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');S.input=m;}
@@ -570,6 +619,7 @@ function qsa(s){return document.querySelectorAll(s)}
 
 window.addEventListener('load',()=>{
   const k=localStorage.getItem('mb_dk');if(k)$('api-key').value=k;
+  const ok=localStorage.getItem('mb_oa');if(ok)$('oa-key').value=ok;
   updateStats();buildStars();
 });
 function buildStars(){
@@ -612,6 +662,8 @@ async function startSession(){
   const key=$('api-key').value.trim();
   if(!key){alert('Add your Anthropic API key first.');return;}
   S.key=key;localStorage.setItem('mb_dk',key);
+  const oaKey=$('oa-key').value.trim();
+  S.oaKey=oaKey; if(oaKey)localStorage.setItem('mb_oa',oaKey);
   S.jd=$('jd-input').value.trim();
   S.cq=0;S.answers=[];S.scores=[];S.selfR=[];S.sessStart=Date.now();
   S.wk={own:0,met:0,hed:0,str:0,len:0};
@@ -682,68 +734,63 @@ function stopTimer(){if(S.timerInt){clearInterval(S.timerInt);S.timerInt=null;}}
 
 /* RECORDING */
 function handleRecBtn(){
-  if(S.input==='voice'){if(!S.recording)startRec();else stopAndReady();}
+  if(S.input==='voice'){if(!S.recording&&!S.transcribing)startRec();else if(S.recording)stopAndReady();}
   else{if(!S.timerInt)startTextTimer();else stopTimer();}
 }
-function startRec(){
-  if(!('SpeechRecognition' in window)&&!('webkitSpeechRecognition' in window)){alert('Voice not supported here. Use text mode.');return;}
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  S.stopRequested=false;
-  S.finalTranscript='';
-  S.transcript='';
-  S.recog=new SR();S.recog.continuous=true;S.recog.interimResults=true;S.recog.maxAlternatives=1;
-  S.recog.lang=S.lang==='de'?'de-DE':'en-US';
-  S.recog.onresult=e=>{
-    let finalText='';
-    let interimText='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const piece=e.results[i][0].transcript.trim();
-      if(e.results[i].isFinal)finalText+=(piece+' ');
-      else interimText+=piece;
-    }
-    if(finalText){
-      S.finalTranscript=[S.finalTranscript,finalText.trim()].filter(Boolean).join(' ').trim();
-    }
-    S.transcript=[S.finalTranscript,interimText.trim()].filter(Boolean).join(' ').trim();
-    const el=$('txlive');if(el){el.textContent=S.transcript||'Listening...';el.classList.toggle('has-text',S.transcript.length>0);}
-  };
-  S.recog.onspeechstart=()=>{$('rec-status-text').textContent=S.lang==='de'?'Sprache erkannt...':'Speech detected...';};
-  S.recog.onspeechend=()=>{$('rec-status-text').textContent=T[S.lang].rec;};
-  S.recog.onerror=e=>{
-    console.warn('SR:',e.error);
-    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){
-      $('rec-status-text').textContent=S.lang==='de'?'Mikrofon blockiert oder nicht verfügbar':'Microphone blocked or unavailable';
-      stopRec();
-      $('submit-btn').style.display='inline-flex';
-    }
-  };
-  S.recog.onend=()=>{if(S.recording&&!S.stopRequested)try{S.recog.start();}catch(e){console.warn('SR restart failed:',e);}};
+async function startRec(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){alert('Voice recording is not supported here. Use text mode.');return;}
+  if(!S.oaKey){alert('Add your OpenAI transcription key first.');return;}
   try{
-    S.recog.start();S.recording=true;
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    S.stopRequested=false;
+    S.transcribing=false;
+    S.audioStream=stream;
+    S.audioChunks=[];
+    S.finalTranscript='';
+    S.transcript='';
+    S.recorder=new MediaRecorder(stream,{mimeType:'audio/webm'});
+    S.recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)S.audioChunks.push(e.data);};
+    S.recorder.onstop=()=>{if(S.stopRequested)transcribeAudio();};
+    S.recording=true;
     $('rec-dot').classList.add('on');
     $('rec-status-text').textContent=T[S.lang].rec;
     $('rec-btn').textContent=T[S.lang].stop;
     $('voice-area').classList.add('live');
-    startTimer();startVol();
-  }catch(e){alert('Could not start mic.');}
+    $('txlive').textContent=S.lang==='de'?'Sprich jetzt...':'Speak now...';
+    $('txlive').classList.add('has-text');
+    startTimer();
+    startVol(stream);
+    S.recorder.start(250);
+  }catch(e){
+    console.warn('MediaRecorder start failed:',e);
+    alert('Could not start mic.');
+  }
 }
 function stopAndReady(){
   S.stopRequested=true;
-  stopRec();
-  $('rec-btn').textContent=T[S.lang].rerec;
-  $('submit-btn').style.display='inline-flex';
-  $('rec-status-text').textContent=T[S.lang].done;
+  stopTimer();
+  stopVol();
+  $('rec-btn').textContent=S.lang==='de'?'Transkribiere...':'Transcribing...';
+  $('rec-status-text').textContent=S.lang==='de'?'Transkribiere...':'Transcribing...';
+  if(S.recorder&&S.recorder.state!=='inactive'){
+    try{S.recorder.stop();}catch(e){console.warn('Recorder stop failed:',e);transcribeAudio();}
+  }else{
+    transcribeAudio();
+  }
 }
 function stopRec(){
   S.recording=false;
-  if(S.recog){try{S.recog.stop();}catch(e){}S.recog=null;}
+  if(S.recorder){try{if(S.recorder.state!=='inactive')S.recorder.stop();}catch(e){}S.recorder=null;}
+  if(S.audioStream){try{S.audioStream.getTracks().forEach(t=>t.stop());}catch(e){}S.audioStream=null;}
+  S.audioChunks=[];
   stopTimer();stopVol();
   $('rec-dot').classList.remove('on');
   $('voice-area').classList.remove('live');
 }
-function startVol(){
-  if(!navigator.mediaDevices)return;
-  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+function startVol(stream){
+  if(!navigator.mediaDevices||!stream)return;
+  if(S.actx){try{S.actx.close();}catch(e){}S.actx=null;}
+  try{
     S.actx=new (window.AudioContext||window.webkitAudioContext)();
     S.analyser=S.actx.createAnalyser();S.analyser.fftSize=64;
     S.actx.createMediaStreamSource(stream).connect(S.analyser);
@@ -755,11 +802,52 @@ function startVol(){
       S.raf=requestAnimationFrame(draw);
     }
     draw();
-  }).catch(()=>{});
+  }catch(e){}
 }
 function stopVol(){
   if(S.raf){cancelAnimationFrame(S.raf);S.raf=null;}
   if(S.actx){try{S.actx.close();}catch(e){}S.actx=null;}
+}
+
+async function transcribeAudio(){
+  if(S.transcribing)return;
+  S.transcribing=true;
+  const t=T[S.lang];
+  $('rec-status-text').textContent=S.lang==='de'?'Audio wird gesendet...':'Sending audio...';
+  const chunks=S.audioChunks.slice();
+  const blob=new Blob(chunks,{type:chunks[0]?.type||'audio/webm'});
+  if(!blob.size){
+    S.transcribing=false;
+    stopRec();
+    $('rec-btn').textContent=t.rerec;
+    $('rec-status-text').textContent=S.lang==='de'?'Kein Audio aufgenommen.':'No audio captured.';
+    return;
+  }
+  const fd=new FormData();
+  fd.append('action','transcribe');
+  fd.append('openai_key',S.oaKey);
+  fd.append('lang',S.lang);
+  fd.append('audio',blob,'answer.webm');
+  try{
+    const res=await fetch(location.href,{method:'POST',body:fd});
+    const data=await res.json();
+    if(!res.ok||data.error)throw new Error(data.error||`HTTP ${res.status}`);
+    const text=(data.text||'').trim();
+    S.finalTranscript=text;
+    S.transcript=text;
+    const el=$('txlive');
+    if(el){el.textContent=text||'...';el.classList.toggle('has-text',text.length>0);}
+    $('submit-btn').style.display='inline-flex';
+    $('rec-btn').textContent=t.rerec;
+    $('rec-status-text').textContent=S.lang==='de'?'Bereit — prüfe das Transkript':'Ready — review transcript';
+  }catch(e){
+    console.error('Transcription failed:',e);
+    $('rec-status-text').textContent=S.lang==='de'?'Transkription fehlgeschlagen':'Transcription failed';
+    alert(e.message||'Transcription failed');
+  }finally{
+    stopRec();
+    S.transcribing=false;
+  }
 }
 
 /* SUBMIT */

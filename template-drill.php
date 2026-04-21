@@ -664,7 +664,13 @@ function startRec(){
       $('submit-btn').style.display='inline-flex';
     }
   };
-  S.recog.onend=()=>{if(S.recording&&!S.stopRequested)try{S.recog.start();}catch(e){console.warn('SR restart failed:',e);}};
+  S.recog.onend=()=>{
+    if(S.recording&&!S.stopRequested){
+      setTimeout(()=>{
+        try{if(S.recording&&!S.stopRequested)S.recog.start();}catch(e){console.warn('SR restart failed:',e);}
+      },250);
+    }
+  };
   try{
     S.recog.start();S.recording=true;
     $('rec-dot').classList.add('on');
