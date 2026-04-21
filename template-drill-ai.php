@@ -3,6 +3,7 @@
 if($_SERVER['REQUEST_METHOD']==='POST' && (($_POST['action'] ?? '')==='transcribe')){
   header('Content-Type: application/json; charset=utf-8');
   $apiKey=trim($_POST['openai_key'] ?? '');
+  $lang=trim($_POST['lang'] ?? '');
   if($apiKey===''){
     http_response_code(400);
     echo json_encode(['error'=>'Missing OpenAI API key']);
@@ -15,9 +16,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && (($_POST['action'] ?? '')==='transcrib
   }
   $ch=curl_init('https://api.openai.com/v1/audio/transcriptions');
   $payload=[
-    'model'=>'gpt-4o-mini-transcribe',
+    'model'=>'gpt-4o-transcribe',
     'file'=>new CURLFile($_FILES['audio']['tmp_name'], $_FILES['audio']['type'] ?: 'audio/webm', $_FILES['audio']['name'] ?: 'answer.webm'),
   ];
+  if($lang==='en' || $lang==='de'){
+    $payload['language']=$lang;
+  }
   curl_setopt_array($ch,[
     CURLOPT_POST=>true,
     CURLOPT_POSTFIELDS=>$payload,
@@ -741,14 +745,23 @@ async function startRec(){
   if(!navigator.mediaDevices||!window.MediaRecorder){alert('Voice recording is not supported here. Use text mode.');return;}
   if(!S.oaKey){alert('Add your OpenAI transcription key first.');return;}
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const stream=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+      }
+    });
     S.stopRequested=false;
     S.transcribing=false;
     S.audioStream=stream;
     S.audioChunks=[];
     S.finalTranscript='';
     S.transcript='';
-    S.recorder=new MediaRecorder(stream,{mimeType:'audio/webm'});
+    const opts={};
+    if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) opts.mimeType='audio/webm;codecs=opus';
+    else if(MediaRecorder.isTypeSupported('audio/webm')) opts.mimeType='audio/webm';
+    S.recorder=new MediaRecorder(stream,opts);
     S.recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)S.audioChunks.push(e.data);};
     S.recorder.onstop=()=>{if(S.stopRequested)transcribeAudio();};
     S.recording=true;
