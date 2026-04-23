@@ -574,6 +574,122 @@ function extractJson(text){
   throw new Error('No JSON found');
 }
 
+function toNum(v){
+  if(typeof v==='number'&&Number.isFinite(v))return v;
+  if(typeof v==='string'){
+    const n=Number(v.trim());
+    if(Number.isFinite(n))return n;
+  }
+  return null;
+}
+
+function clampScore(v, fallback){
+  const n=toNum(v);
+  const base=Number.isFinite(n)?Math.round(n):fallback;
+  return Math.max(1,Math.min(10,base));
+}
+
+function countMatches(text, re){
+  const m=(text||'').match(re);
+  return m?m.length:0;
+}
+
+function buildNumberWordRegex(){
+  const en=[
+    'zero','one','two','three','four','five','six','seven','eight','nine',
+    'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen',
+    'eighteen','nineteen','twenty','thirty','forty','fifty','sixty','seventy',
+    'eighty','ninety','hundred','thousand','million','billion'
+  ];
+  const de=[
+    'null','eins','ein','eine','einer','einem','einen','zwei','drei','vier','fuenf','fünf',
+    'sechs','sieben','acht','neun','zehn','elf','zwölf','zwoelf','dreizehn','vierzehn',
+    'fuenfzehn','fünfzehn','sechzehn','siebzehn','achtzehn','neunzehn','zwanzig',
+    'dreissig','dreißig','vierzig','fuenfzig','fünfzig','sechzig','siebzig','achtzig',
+    'neunzig','hundert','tausend','million','millionen'
+  ];
+  return new RegExp(`\\b(?:${[...en,...de].join('|')})\\b`,'i');
+}
+
+function extractMetricEvidence(text){
+  const raw=String(text||'');
+  const cleaned=raw
+    .replace(/\bminus\s+/gi,'-')
+    .replace(/\bplus\s+/gi,'+')
+    .replace(/\bpercent\b/gi,'%')
+    .replace(/\bprozent\b/gi,'%');
+  const digitHits=cleaned.match(/\b[-+]?\d+(?:[.,]\d+)?\s*(?:%|x|times?)?\b/gi)||[];
+  const wordHits=cleaned.match(buildNumberWordRegex())||[];
+  const metricWords=cleaned.match(/\b(csat|kpi|kpis|metric|metrics|adoption|resolution|conversion|revenue|retention|latency|response time|throughput|users?|tickets?|growth|increase|decrease|improvement|saved|reduced|dropped)\b/gi)||[];
+  const hits=[...digitHits,...wordHits,...metricWords];
+  return [...new Set(hits.map(h=>h.trim()).filter(Boolean))];
+}
+
+function localScoreFallback(question, answer, timeSec){
+  const q=(question||'').toLowerCase();
+  const a=(answer||'').toLowerCase();
+  const words=(answer||'').trim().split(/\s+/).filter(Boolean);
+  const wc=words.length;
+  const metricEvidence=extractMetricEvidence(a);
+  const metricHit=metricEvidence.length>0;
+  const weCount=countMatches(a,/\bwe\b/gi);
+  const hedgeCount=countMatches(a,/\b(i think|maybe|kind of|sort of|probably|i guess|perhaps|actually|basically|somewhat|kinda|vielleicht|irgendwie|eigentlich|halt|na ja|ich denke)\b/gi);
+  const hasDirectStart=/^(i|ich)\b/.test(a);
+  const firstSentence=(answer||'').split(/[.!?]\s+/)[0] || '';
+  const directQuestion=q.includes('yourself')||q.includes('tell me about yourself')||q.includes('stellen sie sich kurz vor');
+  const structureScore=hasDirectStart||!directQuestion?7:5;
+  const metricScore=metricHit?7:3;
+  const ownershipScore=Math.max(1,10-Math.max(0,weCount-2)*2);
+  const lengthPenalty=wc>200?2:wc>150?1:0;
+  const hedgePenalty=Math.min(3,Math.floor(hedgeCount/2));
+  const timePenalty=timeSec>120?1:0;
+  const overall=Math.max(1,Math.min(10,Math.round((structureScore+metricScore+ownershipScore)/3)-lengthPenalty-hedgePenalty-timePenalty));
+  const weaknesses=[];
+  if(weCount>2)weaknesses.push('ownership gap');
+  if(!metricHit)weaknesses.push('metric blindness');
+  if(!hasDirectStart&&directQuestion)weaknesses.push('first-sentence delay');
+  if(hedgeCount>0)weaknesses.push('hedge spiral');
+  if(wc>180)weaknesses.push('intro bloat');
+  if(q.includes('hardest')||q.includes('trade-off')||q.includes('tradeoff'))weaknesses.push('structure collapse');
+  return {
+    overall,
+    structure: Math.max(1,Math.min(10,structureScore-lengthPenalty)),
+    ownership: ownershipScore,
+    metrics: metricScore,
+    weaknesses_triggered:[...new Set(weaknesses)],
+    what_worked:'',
+    critical_fix:'',
+    rewrite_sentence:'',
+    cut_this:'',
+    say_this:'',
+    strongest_line:'',
+    filler_words_found:(answer||'').match(/\b(um|uh|like|you know|vielleicht|eigentlich|halt|na ja)\b/gi)||[],
+    metric_evidence:metricEvidence,
+    we_count:weCount,
+    metric_cited:metricHit,
+    word_count:wc
+  };
+}
+
+function normalizeScoreResponse(d, question, answer, timeSec){
+  const fallback=localScoreFallback(question, answer, timeSec);
+  const fields=['overall','structure','ownership','metrics'];
+  const out={...fallback};
+  fields.forEach(k=>{
+    out[k]=clampScore(d?.[k], fallback[k]);
+  });
+  out.metric_cited=typeof d?.metric_cited==='boolean' ? (d.metric_cited || fallback.metric_cited) : fallback.metric_cited;
+  out.metric_evidence=Array.isArray(d?.metric_evidence)&&d.metric_evidence.length?d.metric_evidence:fallback.metric_evidence;
+  out.we_count=Number.isFinite(toNum(d?.we_count))?Math.max(0,Math.round(toNum(d.we_count))):fallback.we_count;
+  out.word_count=Number.isFinite(toNum(d?.word_count))?Math.max(0,Math.round(toNum(d.word_count))):fallback.word_count;
+  out.weaknesses_triggered=Array.isArray(d?.weaknesses_triggered)&&d.weaknesses_triggered.length?d.weaknesses_triggered:fallback.weaknesses_triggered;
+  ['what_worked','critical_fix','rewrite_sentence','cut_this','say_this','strongest_line'].forEach(k=>{
+    out[k]=typeof d?.[k]==='string'?d[k].trim():fallback[k];
+  });
+  out.filler_words_found=Array.isArray(d?.filler_words_found)&&d.filler_words_found.length?d.filler_words_found:fallback.filler_words_found;
+  return out;
+}
+
 /* STORAGE */
 function lh(){try{return JSON.parse(localStorage.getItem('mb_dh')||'[]')}catch{return[]}}
 function sh(h){localStorage.setItem('mb_dh',JSON.stringify(h))}
@@ -915,40 +1031,42 @@ function retryQuestion(){
 async function scoreFeedback(question,answer,timeSec){
   const wc=answer.split(/\s+/).length;const isDE=S.lang==='de';
   const prompt=isDE
-    ?`Frage: "${question}"\n\nManus Antwort (${timeSec}s, ~${wc} Wörter):\n"${answer}"\n\nBewerte streng. Zitiere seine exakten Worte bei Kritik.\n\nNur JSON:\n{"overall":<1-10>,"structure":<1-10>,"ownership":<1-10>,"metrics":<1-10>,"weaknesses_triggered":[],"what_worked":"","critical_fix":"","rewrite_sentence":"","cut_this":"","say_this":"","strongest_line":"","filler_words_found":[],"we_count":<n>,"metric_cited":<bool>,"word_count":${wc}}`
-    :`Question: "${question}"\n\nManu's answer (${timeSec}s, ~${wc} words):\n"${answer}"\n\nScore harshly. Quote exact words for every negative.\n\nReturn ONLY JSON:\n{"overall":<1-10>,"structure":<1-10>,"ownership":<1-10>,"metrics":<1-10>,"weaknesses_triggered":[],"what_worked":"","critical_fix":"","rewrite_sentence":"","cut_this":"","say_this":"","strongest_line":"","filler_words_found":[],"we_count":<n>,"metric_cited":<bool>,"word_count":${wc}}`;
+    ?`Frage: "${question}"\n\nManus Antwort (${timeSec}s, ~${wc} Wörter):\n"${answer}"\n\nBewerte streng. Zitiere seine exakten Worte bei Kritik. Jede Zahl, Zahlwort oder Mengenangabe im Antworttext zählt als Metric-Hinweis.\n\nNur JSON. Alle Score-Felder müssen Zahlen von 1 bis 10 sein. Nie null, nie leer, nie Text.\n{"overall":1,"structure":1,"ownership":1,"metrics":1,"weaknesses_triggered":[],"what_worked":"","critical_fix":"","rewrite_sentence":"","cut_this":"","say_this":"","strongest_line":"","filler_words_found":[],"metric_evidence":[],"we_count":0,"metric_cited":false,"word_count":${wc}}`
+    :`Question: "${question}"\n\nManu's answer (${timeSec}s, ~${wc} words):\n"${answer}"\n\nScore harshly. Quote exact words for every negative. Any explicit number, spelled-out number, or quantity word in the answer counts as metric evidence.\n\nReturn ONLY JSON. All score fields must be numbers from 1 to 10. Never null, never blank, never text.\n{"overall":1,"structure":1,"ownership":1,"metrics":1,"weaknesses_triggered":[],"what_worked":"","critical_fix":"","rewrite_sentence":"","cut_this":"","say_this":"","strongest_line":"","filler_words_found":[],"metric_evidence":[],"we_count":0,"metric_cited":false,"word_count":${wc}}`;
   try{
     const res=await claude([{role:'user',content:prompt}],320);
     const d=extractJson(res);
-    animRing(d.overall||0);
-    [{id:'dc-str',v:d.structure},{id:'dc-own',v:d.ownership},{id:'dc-met',v:d.metrics},{id:'dc-ov',v:d.overall}].forEach(({id,v})=>{
-      const el=$(id);if(el){el.textContent=(v||'—')+'/10';el.closest('.dim').className='dim '+(v>=7?'good':v>=5?'warn':'bad');}
+    const s=normalizeScoreResponse(d, question, answer, timeSec);
+    animRing(s.overall);
+    [{id:'dc-str',v:s.structure},{id:'dc-own',v:s.ownership},{id:'dc-met',v:s.metrics},{id:'dc-ov',v:s.overall}].forEach(({id,v})=>{
+      const el=$(id);if(el){el.textContent=v+'/10';el.closest('.dim').className='dim '+(v>=7?'good':v>=5?'warn':'bad');}
     });
-    if(d.weaknesses_triggered){
-      d.weaknesses_triggered.forEach(w=>{
+    if(s.weaknesses_triggered){
+      s.weaknesses_triggered.forEach(w=>{
         if(w.includes('ownership'))S.wk.own++;
         if(w.includes('metric'))S.wk.met++;
         if(w.includes('hedge')||w.includes('spiral'))S.wk.hed++;
         if(w.includes('structure'))S.wk.str++;
       });
     }
-    if(d.word_count>180)S.wk.len++;
-    const wt=(d.weaknesses_triggered||[]).map(w=>`<span class="wtag">${w}</span>`).join('');
-    const mt=d.metric_cited?`<span class="wtag pass">${isDE?'Zahl genannt ✓':'metric cited ✓'}</span>`:`<span class="wtag">${isDE?'keine Zahl':'no metric'}</span>`;
-    const we=d.we_count>1?`<span class="wtag">${isDE?`"wir" ${d.we_count}x`:`"we" ${d.we_count}x`}</span>`:'';
-    $('tag-row').innerHTML=wt+mt+we;
+    if(s.word_count>180)S.wk.len++;
+    const wt=(s.weaknesses_triggered||[]).map(w=>`<span class="wtag">${w}</span>`).join('');
+    const mt=s.metric_cited?`<span class="wtag pass">${isDE?'Zahl genannt ✓':'metric cited ✓'}</span>`:`<span class="wtag">${isDE?'keine Zahl':'no metric'}</span>`;
+    const we=s.we_count>1?`<span class="wtag">${isDE?`"wir" ${s.we_count}x`:`"we" ${s.we_count}x`}</span>`:'';
+    const me=s.metric_evidence?.length?`<span class="wtag pass">${s.metric_evidence.slice(0,3).join(', ')}</span>`:'';
+    $('tag-row').innerHTML=wt+mt+we+me;
     let html='';
-    if(d.what_worked)html+=`<strong>${isDE?'Was gut war':'What worked'}:</strong>\n${d.what_worked}\n\n`;
-    if(d.critical_fix)html+=`<strong>${isDE?'Das wichtigste zu verbessern':'Fix this first'}:</strong>\n${d.critical_fix}\n\n`;
-    if(d.rewrite_sentence)html+=`<strong>${isDE?'Bessere Eröffnung':'Better opening'}:</strong>\n"${d.rewrite_sentence}"\n\n`;
-    if(d.cut_this)html+=`<strong>${isDE?'Streichen':'Cut this'}:</strong>\n${d.cut_this}\n\n`;
-    if(d.say_this)html+=`<strong>${isDE?'Stattdessen sagen':'Say this instead'}:</strong>\n${d.say_this}\n\n`;
-    if(d.strongest_line)html+=`<strong>${isDE?'Stärkste Zeile':'Strongest line'}:</strong>\n${d.strongest_line}\n\n`;
-    if(d.filler_words_found?.length)html+=`<strong>${isDE?'Füllwörter':'Filler words'}:</strong> ${d.filler_words_found.join(', ')}\n\n`;
-    if(d.we_count>1)html+=`<strong>${isDE?`"Wir" ${d.we_count}× gesagt.`:`Said "we" ${d.we_count} times.`}</strong> ${isDE?'Sag "Ich".':'Use "I".'}\n\n`;
-    if(!d.metric_cited)html+=`<strong>${isDE?'Keine Zahl.':'No metric.'}</strong> ${isDE?'Cognigy: -30%. Lengoo: +15% CSAT, +20% Adoption.':'Cognigy: -30% resolution. Lengoo: +15% CSAT, +20% adoption.'}\n`;
+    if(s.what_worked)html+=`<strong>${isDE?'Was gut war':'What worked'}:</strong>\n${s.what_worked}\n\n`;
+    if(s.critical_fix)html+=`<strong>${isDE?'Das wichtigste zu verbessern':'Fix this first'}:</strong>\n${s.critical_fix}\n\n`;
+    if(s.rewrite_sentence)html+=`<strong>${isDE?'Bessere Eröffnung':'Better opening'}:</strong>\n"${s.rewrite_sentence}"\n\n`;
+    if(s.cut_this)html+=`<strong>${isDE?'Streichen':'Cut this'}:</strong>\n${s.cut_this}\n\n`;
+    if(s.say_this)html+=`<strong>${isDE?'Stattdessen sagen':'Say this instead'}:</strong>\n${s.say_this}\n\n`;
+    if(s.strongest_line)html+=`<strong>${isDE?'Stärkste Zeile':'Strongest line'}:</strong>\n${s.strongest_line}\n\n`;
+    if(s.filler_words_found?.length)html+=`<strong>${isDE?'Füllwörter':'Filler words'}:</strong> ${s.filler_words_found.join(', ')}\n\n`;
+    if(s.we_count>1)html+=`<strong>${isDE?`"Wir" ${s.we_count}× gesagt.`:`Said "we" ${s.we_count} times.`}</strong> ${isDE?'Sag "Ich".':'Use "I".'}\n\n`;
+    if(!s.metric_cited)html+=`<strong>${isDE?'Keine Zahl.':'No metric.'}</strong> ${isDE?'Cognigy: -30%. Lengoo: +15% CSAT, +20% Adoption.':'Cognigy: -30% resolution. Lengoo: +15% CSAT, +20% adoption.'}\n`;
     $('fb-stream').innerHTML=`<div class="feedback-body fu">${html.trim()}</div>`;
-    S.scores.push({overall:d.overall||0,structure:d.structure||0,ownership:d.ownership||0,metrics:d.metrics||0,weaknesses:d.weaknesses_triggered||[],metric_cited:d.metric_cited,we_count:d.we_count||0});
+    S.scores.push({overall:s.overall,structure:s.structure,ownership:s.ownership,metrics:s.metrics,weaknesses:s.weaknesses_triggered||[],metric_cited:s.metric_cited,we_count:s.we_count||0});
     $('fb-btns').style.display='flex';
     $('retry-btn').textContent=S.lang==='de'?T.de.retry:T.en.retry;
     $('next-btn').textContent=S.lang==='de'?T.de.next:T.en.next;
