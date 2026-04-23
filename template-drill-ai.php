@@ -242,9 +242,9 @@ h2{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;margin-bot
 <!-- SETUP -->
 <div id="ph-setup" class="phase active">
   <div class="hero">
-    <div class="hero-eyebrow"><span class="eyebrow-dot"></span>PM Interview Training Tool &middot; Active</div>
-    <h1 class="hero-title">Train your<br>answers<span class="acc">.</span></h1>
-    <p class="hero-desc">Speak your answers out loud. Get scored against your real weak patterns from 12 real interviews. Build automaticity before the next one.</p>
+    <div class="hero-eyebrow"><span class="eyebrow-dot"></span>PM Interview Coach &middot; Live</div>
+    <h1 class="hero-title">Ship better<br>interview answers<span class="acc">.</span></h1>
+    <p class="hero-desc">Practice in real time, get precise scoring on every answer, and convert weak patterns into measurable improvement.</p>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hsv" id="st-sessions">&#x2014;</div><div class="hsl">Sessions</div></div>
       <div class="hero-stat"><div class="hsv" id="st-avg">&#x2014;</div><div class="hsl">Avg score</div></div>
