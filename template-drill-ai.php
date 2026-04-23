@@ -1113,11 +1113,36 @@ async function scoreFeedback(question,answer,timeSec){
     $('retry-btn').textContent=S.lang==='de'?T.de.retry:T.en.retry;
     $('next-btn').textContent=S.lang==='de'?T.de.next:T.en.next;
   }catch(e){
-    console.error('Score error:', e);
-    $('fb-stream').innerHTML=`<div class="feedback-body">${S.lang==='de'?'Fehler: ':'Error: '}${e.message||'unknown'}</div>`;
+    console.warn('Claude scoring failed, using local fallback:', e);
+    const s=normalizeScoreResponse(null, question, answer, timeSec);
+    const answerMetricEvidence=extractMetricEvidence(answer);
+    s.metric_evidence=answerMetricEvidence.length?answerMetricEvidence:s.metric_evidence;
+    s.metric_cited=answerMetricEvidence.length>0;
+    animRing(s.overall);
+    [{id:'dc-str',v:s.structure},{id:'dc-own',v:s.ownership},{id:'dc-met',v:s.metrics},{id:'dc-ov',v:s.overall}].forEach(({id,v})=>{
+      const el=$(id);if(el){el.textContent=v+'/10';el.closest('.dim').className='dim '+(v>=7?'good':v>=5?'warn':'bad');}
+    });
+    const wt=(s.weaknesses_triggered||[]).map(w=>`<span class="wtag">${w}</span>`).join('');
+    const mt=s.metric_cited?`<span class="wtag pass">${S.lang==='de'?'Zahl genannt ✓':'metric cited ✓'}</span>`:`<span class="wtag">${S.lang==='de'?'keine Zahl':'no metric'}</span>`;
+    const we=s.we_count>1?`<span class="wtag">${S.lang==='de'?`"wir" ${s.we_count}x`:`"we" ${s.we_count}x`}</span>`:'';
+    const me=s.metric_evidence?.length?`<span class="wtag pass">${s.metric_evidence.slice(0,3).join(', ')}</span>`:'';
+    $('tag-row').innerHTML=wt+mt+we+me;
+    let html='';
+    if(s.what_worked)html+=`<strong>${S.lang==='de'?'Was gut war':'What worked'}:</strong>\n${s.what_worked}\n\n`;
+    if(s.critical_fix)html+=`<strong>${S.lang==='de'?'Das wichtigste zu verbessern':'Fix this first'}:</strong>\n${s.critical_fix}\n\n`;
+    if(s.rewrite_sentence)html+=`<strong>${S.lang==='de'?'Bessere Eröffnung':'Better opening'}:</strong>\n"${s.rewrite_sentence}"\n\n`;
+    if(s.cut_this)html+=`<strong>${S.lang==='de'?'Streichen':'Cut this'}:</strong>\n${s.cut_this}\n\n`;
+    if(s.say_this)html+=`<strong>${S.lang==='de'?'Stattdessen sagen':'Say this instead'}:</strong>\n${s.say_this}\n\n`;
+    if(s.strongest_line)html+=`<strong>${S.lang==='de'?'Stärkste Zeile':'Strongest line'}:</strong>\n${s.strongest_line}\n\n`;
+    if(s.filler_words_found?.length)html+=`<strong>${S.lang==='de'?'Füllwörter':'Filler words'}:</strong> ${s.filler_words_found.join(', ')}\n\n`;
+    if(s.we_count>1)html+=`<strong>${S.lang==='de'?`"Wir" ${s.we_count}× gesagt.`:`Said "we" ${s.we_count} times.`}</strong> ${S.lang==='de'?'Sag "Ich".':'Use "I".'}\n\n`;
+    if(!s.metric_cited)html+=`<strong>${S.lang==='de'?'Keine Zahl.':'No metric.'}</strong> ${S.lang==='de'?'Cognigy: -30%. Lengoo: +15% CSAT, +20% Adoption.':'Cognigy: -30% resolution. Lengoo: +15% CSAT, +20% adoption.'}\n`;
+    html+=`<strong>${S.lang==='de'?'Lokale Bewertung':'Local scoring'}:</strong> Claude nicht verfügbar, daher aus deinem Transkript berechnet.\n`;
+    $('fb-stream').innerHTML=`<div class="feedback-body fu">${html.trim()}</div>`;
     $('fb-btns').style.display='flex';
     $('retry-btn').textContent=S.lang==='de'?T.de.retry:T.en.retry;
-    S.scores.push({overall:0,structure:0,ownership:0,metrics:0,weaknesses:[],metric_cited:false,we_count:0});
+    $('next-btn').textContent=S.lang==='de'?T.de.next:T.en.next;
+    S.scores.push({overall:s.overall,structure:s.structure,ownership:s.ownership,metrics:s.metrics,weaknesses:s.weaknesses_triggered||[],metric_cited:s.metric_cited,we_count:s.we_count||0});
   }
 }
 
@@ -1193,7 +1218,7 @@ function restartSession(){resetSessionState();updateStats();showP('ph-setup');}
 
 /* CLAUDE */
 async function claude(messages,maxTokens=400){
-  const models=['claude-3-5-haiku-latest','claude-3-haiku-20240307'];
+  const models=['claude-3-5-haiku-latest'];
   let lastErr=null;
   for(const model of models){
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,max_tokens:maxTokens,system:ANTHROPIC_SYSTEM,messages})});
