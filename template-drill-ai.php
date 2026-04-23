@@ -671,6 +671,41 @@ function localScoreFallback(question, answer, timeSec){
   };
 }
 
+function buildFallbackFeedback(question, answer, scoreData){
+  const metricText=(scoreData.metric_evidence||[]).slice(0,3).join(', ');
+  const lead=(answer||'').trim().split(/[.!?]\s+/)[0].trim();
+  const directOpen=/^(i|ich)\b/i.test((answer||'').trim());
+  const hasMetric=!!scoreData.metric_cited;
+  const hasIntroBloat=(scoreData.weaknesses_triggered||[]).some(w=>w.includes('intro bloat')||w.includes('first-sentence delay'));
+  const hasOwnershipGap=(scoreData.weaknesses_triggered||[]).some(w=>w.includes('ownership gap'));
+  const hasStructureIssue=(scoreData.weaknesses_triggered||[]).some(w=>w.includes('structure'));
+
+  return {
+    what_worked: hasMetric
+      ? `You gave concrete evidence: ${metricText}.`
+      : 'You covered relevant experience, but the answer needs a clearer result signal.',
+    critical_fix: hasIntroBloat
+      ? 'Open with the answer immediately, then keep the context short.'
+      : hasOwnershipGap
+        ? 'Shift more sentences to "I" so your ownership is unmistakable.'
+        : hasStructureIssue
+          ? 'Make the first sentence directly answer the question.'
+          : 'Tighten the answer so the result comes through faster.',
+    rewrite_sentence: directOpen && lead
+      ? lead
+      : hasMetric
+        ? `I'm a Product Manager in Berlin who led the work end-to-end and improved results by ${metricText}.`
+        : `I'm a Product Manager in Berlin who led the work end-to-end and shipped measurable results.`,
+    cut_this: hasIntroBloat
+      ? 'Cut the long biography and the extra role history before the point.'
+      : 'Cut repeated context and keep only the parts that prove impact.',
+    say_this: hasMetric
+      ? `Say: I led it end-to-end and improved results by ${metricText}.`
+      : 'Say: I led it end-to-end and delivered a measurable outcome.',
+    strongest_line: lead || 'No clear strongest line detected yet.'
+  };
+}
+
 function normalizeScoreResponse(d, question, answer, timeSec){
   const fallback=localScoreFallback(question, answer, timeSec);
   const fields=['overall','structure','ownership','metrics'];
@@ -687,6 +722,10 @@ function normalizeScoreResponse(d, question, answer, timeSec){
     out[k]=typeof d?.[k]==='string'?d[k].trim():fallback[k];
   });
   out.filler_words_found=Array.isArray(d?.filler_words_found)&&d.filler_words_found.length?d.filler_words_found:fallback.filler_words_found;
+  const feedback=buildFallbackFeedback(question, answer, out);
+  ['what_worked','critical_fix','rewrite_sentence','cut_this','say_this','strongest_line'].forEach(k=>{
+    if(!out[k])out[k]=feedback[k];
+  });
   return out;
 }
 
@@ -1037,6 +1076,9 @@ async function scoreFeedback(question,answer,timeSec){
     const res=await claude([{role:'user',content:prompt}],320);
     const d=extractJson(res);
     const s=normalizeScoreResponse(d, question, answer, timeSec);
+    const answerMetricEvidence=extractMetricEvidence(answer);
+    s.metric_evidence=answerMetricEvidence.length?answerMetricEvidence:s.metric_evidence;
+    s.metric_cited=answerMetricEvidence.length>0;
     animRing(s.overall);
     [{id:'dc-str',v:s.structure},{id:'dc-own',v:s.ownership},{id:'dc-met',v:s.metrics},{id:'dc-ov',v:s.overall}].forEach(({id,v})=>{
       const el=$(id);if(el){el.textContent=v+'/10';el.closest('.dim').className='dim '+(v>=7?'good':v>=5?'warn':'bad');}
