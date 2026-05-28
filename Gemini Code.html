@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Interview Studio — Manuel Becerra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0e;--bg2:#141414;--bg3:#1a1a1a;
+  --surface:#242424;--surface2:#2e2e2e;
+  --ink:#f5f5f0;--ink-dim:#999990;--ink-ghost:#555550;
+  --accent:#e8ff00;--accent-dim:rgba(232,255,0,0.1);--accent-hover:#d4eb00;
+  --border:rgba(245,245,240,0.08);--border-med:rgba(245,245,240,0.14);--border-strong:rgba(245,245,240,0.24);
+  --danger:#e05050;--danger-bg:rgba(224,80,80,0.1);
+  --warn:#d49040;--warn-bg:rgba(212,144,64,0.1);
+  --success:#50a070;--success-bg:rgba(80,160,112,0.1);
+  --sage:#6fcf97;
+  --gold:#c8a840;--gold-bg:rgba(200,168,64,0.1);
+  --r:8px;--rl:12px;
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.6}
+.shell{max-width:680px;margin:0 auto;padding:0 1.5rem 5rem}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;border-bottom:1px solid var(--border);margin-bottom:3rem}
+.nav-logo{font-family:'Shippori Mincho',serif;font-size:16px;font-weight:600;letter-spacing:0.03em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:3px}
+.nav-dot{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:14px}
+.nav-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase}
+.api-status-badge{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-dim)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--ink-ghost)}
+.status-dot.active{background:var(--success);box-shadow:0 0 8px var(--success)}
+.streak-pill{display:none;align-items:center;gap:4px;background:var(--gold-bg);border:1px solid rgba(200,168,64,0.2);border-radius:20px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.04em}
+
+/* PHASES */
+.phase{display:none}.phase.active{display:block}
+
+/* HERO */
+.hero{padding:3rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+.hero-title{font-family:'Shippori Mincho',serif;font-size:clamp(30px,5vw,50px);font-weight:600;line-height:1.1;margin-bottom:1.25rem;color:var(--ink)}
+.hero-title .acc{color:var(--accent)}
+.hero-desc{font-size:15px;color:var(--ink-dim);line-height:1.7;max-width:540px;margin-bottom:2rem}
+.hero-stats{display:flex;gap:2.5rem;flex-wrap:wrap;margin-top:1.5rem}
+.hero-stat .hsv{font-family:'Shippori Mincho',serif;font-size:28px;font-weight:600;color:var(--accent);line-height:1;margin-bottom:3px}
+.hero-stat .hsl{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase}
+
+/* TREND CARD */
+.trend-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:2rem}
+.trend-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.trend-lbl{font-size:13px;color:var(--ink-dim);font-weight:500}
+.trend-best{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-ghost)}
+.trend-bars{display:flex;align-items:flex-end;gap:8px;height:56px}
+.tb-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.tb{width:100%;border-radius:3px 3px 0 0;min-height:3px;background:var(--surface2);transition:height 0.5s cubic-bezier(0.4,0,0.2,1)}
+.tb.a{background:var(--accent)}.tb.w{background:var(--warn)}.tb.d{background:var(--danger)}.tb.e{opacity:0.3}
+.tb-date{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);text-align:center}
+.trend-empty{font-size:13px;color:var(--ink-ghost);text-align:center;padding:16px 0}
+
+/* SECTION LABEL */
+.slabel{display:block;font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px}
+
+/* CARD */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-success{background:var(--success-bg);border:1px solid rgba(80,160,112,0.2);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-accent{background:var(--accent-dim);border:1px solid rgba(232,255,0,0.15);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+
+/* MODE GRID */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.mode-card{border:1px solid var(--border-med);border-radius:var(--rl);padding:1rem 1.125rem;cursor:pointer;background:var(--bg3);transition:border-color 0.15s,background 0.15s;-webkit-tap-highlight-color:transparent}
+.mode-card:hover{border-color:var(--border-strong);background:var(--surface)}
+.mode-card.selected{border:1.5px solid var(--accent);background:var(--accent-dim)}
+.mode-card .mct{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:3px}
+.mode-card .mcd{font-size:12px;color:var(--ink-ghost);line-height:1.4}
+
+/* INPUTS */
+input[type=text],input[type=password],textarea,select{width:100%;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--border-med);border-radius:var(--r);padding:10px 14px;outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+input::placeholder,textarea::placeholder{color:var(--ink-ghost)}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:100px;line-height:1.6}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:11px 20px;border-radius:var(--r);border:1px solid var(--border-med);background:transparent;color:var(--ink);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px}
+.btn:hover{background:var(--surface2);border-color:var(--border-strong)}.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:#000;border-color:transparent;font-weight:600}.btn-primary:hover{background:var(--accent-hover)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:1.5rem;align-items:center}
+.btn-ghost{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-ghost);cursor:pointer;text-decoration:underline;-webkit-tap-highlight-color:transparent}
+
+/* PROGRESS */
+.prog-track{height:2px;background:var(--surface2);border-radius:1px;margin-bottom:2rem}
+.prog-bar{height:100%;background:var(--accent);border-radius:1px;transition:width 0.4s ease}
+
+/* QUESTION */
+.q-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px}
+.q-text{font-family:'Shippori Mincho',serif;font-size:clamp(18px,3vw,23px);font-weight:600;line-height:1.4;margin-bottom:1.5rem;color:var(--ink)}
+.cpar-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
+.cpar-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.04em;padding:3px 9px;border-radius:20px;background:var(--surface);color:var(--ink-ghost);border:1px solid var(--border)}
+.cpar-pill:first-child{border-color:rgba(232,255,0,0.25);color:rgba(232,255,0,0.75)}
+
+/* TIMER + REC */
+.timer-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.timer-num{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.timer-num.warn{color:var(--warn)}.timer-num.danger{color:var(--danger)}
+.timer-track{height:3px;background:var(--surface2);border-radius:2px;margin-bottom:1rem;overflow:hidden}
+.timer-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 1s linear,background 0.5s}
+.rec-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem;transition:border-color 0.3s}
+.rec-box.live{border-color:rgba(224,80,80,0.4)}
+.rec-status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);margin-bottom:12px}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--ink-ghost);flex-shrink:0}
+.rec-dot.on{background:var(--danger);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.vol-bars{display:flex;align-items:flex-end;gap:3px;height:22px;margin-bottom:10px}
+.vb{width:3px;border-radius:2px;background:var(--surface2);min-height:3px;transition:height 0.08s}
+.txlive{font-size:14px;color:var(--ink-ghost);line-height:1.7;min-height:60px;font-style:italic}
+.txlive.has-text{font-style:normal;color:var(--ink)}
+
+/* SCORE RING */
+.score-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;display:flex;gap:1.5rem;align-items:center;margin-bottom:1rem}
+.rbg{fill:none;stroke:var(--surface2);stroke-width:8}
+.rfg{fill:none;stroke-width:8;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1),stroke 0.5s}
+.rnum{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;fill:var(--ink);dominant-baseline:central;text-anchor:middle;font-variant-numeric:tabular-nums}
+.rsub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;fill:var(--ink-ghost);dominant-baseline:central;text-anchor:middle}
+.dims{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dim{background:var(--surface);border-radius:var(--r);padding:8px 10px}
+.dim .dl{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px}
+.dim .dv{font-size:16px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.dim.good .dv{color:var(--accent)}.dim.warn .dv{color:var(--warn)}.dim.bad .dv{color:var(--danger)}
+
+/* TAGS */
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--danger-bg);color:var(--danger);border:1px solid rgba(224,80,80,0.2)}
+.tag.good{background:var(--success-bg);color:var(--success);border-color:rgba(80,160,112,0.2)}
+.tag.accent{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,255,0,0.2)}
+
+/* FEEDBACK */
+.fb-body{font-size:14px;line-height:1.8;color:var(--ink-dim);white-space:pre-wrap}
+.fb-body strong{color:var(--ink);font-weight:500}
+
+/* SELF RATE */
+.rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem}
+.rate-cell{border:1px solid var(--border-med);border-radius:var(--r);padding:10px 12px;background:var(--bg3)}
+.rate-cell .rl{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
+.stars{display:flex;gap:4px}
+.star{font-size:18px;cursor:pointer;color:var(--surface2);transition:color 0.1s;-webkit-tap-highlight-color:transparent}
+.star.on{color:var(--accent)}
+
+/* API */
+.api-row{display:flex;gap:8px;align-items:center}.api-row input{flex:1}
+.api-row > div{flex:1}
+.api-row > div > select{width:100%}
+.api-eye{background:none;border:1px solid var(--border-med);border-radius:var(--r);font-size:14px;cursor:pointer;padding:0 10px;height:42px;color:var(--ink-ghost);transition:background 0.15s}
+.api-eye:hover{background:var(--surface)}
+
+/* ADAPTIVE BLUEPRINT */
+.bp-header{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px;display:flex;gap:14px;align-items:center}
+.bp-avatar{width:42px;height:42px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;flex-shrink:0}
+.bp-meta h3{font-family:'Shippori Mincho',serif;font-size:16px;font-weight:600;color:var(--ink)}
+.bp-meta p{font-size:12px;color:var(--ink-dim);line-height:1.4}
+.bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.bp-grid{grid-template-columns:1fr}}
+.bp-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.bp-tag{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+.bp-title{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--ink)}
+.bp-desc{font-size:12px;color:var(--ink-dim);line-height:1.4}
+.bp-desc span{color:var(--accent);font-weight:500}
+
+/* LOADING */
+.dots{display:flex;gap:5px;align-items:center;padding:1.5rem 0}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--ink-ghost);animation:bounce 1.2s infinite}
+.dots span:nth-child(2){animation-delay:0.2s}.dots span:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+.dots-msg{font-size:14px;color:var(--ink-ghost);margin-left:10px}
+
+/* SUMMARY */
+.sum-hero{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+.sum-ring-wrap{display:inline-block;margin-bottom:1rem}
+.sum-sub{font-size:13px;color:var(--ink-ghost)}
+.sum-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.sm{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1rem;text-align:center}
+.sm .smv{font-family:'Shippori Mincho',serif;font-size:24px;font-weight:600;color:var(--ink);margin-bottom:3px;font-variant-numeric:tabular-nums}
+.sm .sml{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.07em;text-transform:uppercase}
+.pattern-list{list-style:none}
+.pattern-list li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--ink-dim);display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+.pattern-list li:last-child{border-bottom:none}
+
+/* MISC */
+.hint{font-size:12px;color:var(--ink-ghost);margin-top:6px;line-height:1.5}
+.skip-btn{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-ghost);cursor:pointer;text-decoration:underline;-webkit-tap-highlight-color:transparent}
+.skip-btn:hover{color:var(--ink-dim)}
+h1{font-family:'Shippori Mincho',serif;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:0.5rem;color:var(--ink)}
+h2{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;margin-bottom:0.75rem;color:var(--ink)}
+.sub{font-size:14px;color:var(--ink-dim);line-height:1.6;margin-bottom:1.75rem}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp 0.3s ease forwards}
+@media(max-width:520px){.shell{padding:0 1rem 4rem}.hero-title{font-size:28px}.score-card{flex-direction:column}.dims{grid-template-columns:1fr 1fr}.hero-stats{gap:1.5rem}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav>
+  <a href="#" class="nav-logo">Manuel Becerra<span class="nav-dot">.</span></a>
+  <div class="nav-right">
+    <div class="api-status-badge">
+      <div id="status-dot" class="status-dot"></div>
+      <span id="status-label">Offline Baseline</span>
+    </div>
+    <div class="streak-pill" id="streak-pill">&#128293; <span id="streak-num">0</span></div>
+    <span class="nav-tag">Interview Coach</span>
+  </div>
+</nav>
+
+<!-- SETUP -->
+<div id="ph-setup" class="phase active">
+  <div class="hero">
+    <div class="hero-eyebrow"><span class="eyebrow-dot"></span>PM Interview Coach &middot; Live</div>
+    <h1 class="hero-title">Ship better<br>interview answers<span class="acc">.</span></h1>
+    <p class="hero-desc">Practice in real time, get precise scoring on every answer, and convert weak patterns into measurable improvement.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hsv" id="st-sessions">&#x2014;</div><div class="hsl">Sessions</div></div>
+      <div class="hero-stat"><div class="hsv" id="st-avg">&#x2014;</div><div class="hsl">Avg score</div></div>
+      <div class="hero-stat"><div class="hsv" id="st-streak">&#x2014;</div><div class="hsl">Day streak</div></div>
+    </div>
+  </div>
+
+  <div class="trend-card">
+    <div class="trend-hdr">
+      <span class="trend-lbl">Last 7 sessions</span>
+      <span class="trend-best" id="trend-best"></span>
+    </div>
+    <div class="trend-bars" id="trend-bars"></div>
+  </div>
+
+  <div class="card">
+    <span class="slabel">API Configuration</span>
+    <div class="api-row" style="margin-bottom:10px">
+      <input type="password" id="key-openai" placeholder="OpenAI key for transcription..." autocomplete="off" spellcheck="false">
+      <button class="api-eye" data-eye-for="key-openai">&#128065;</button>
+    </div>
+    <div class="api-row">
+      <input type="password" id="key-claude" placeholder="Claude key for feedback..." autocomplete="off" spellcheck="false">
+      <button class="api-eye" data-eye-for="key-claude">&#128065;</button>
+    </div>
+    <p class="hint">Keys stay in memory only. OpenAI powers voice transcription; Claude powers deeper evaluation.</p>
+  </div>
+
+  <div class="card">
+    <span class="slabel">Context J.D. Ingestion Module</span>
+    <textarea id="jd-input" rows="5" placeholder="Paste the target enterprise description text parameters here..."></textarea>
+    <div class="api-row" style="margin-top:12px;margin-bottom:12px">
+      <div>
+        <span class="slabel" style="margin-bottom:6px">Execution Intelligence Provider</span>
+        <select id="select-provider">
+          <option value="claude">Anthropic Claude Engine</option>
+          <option value="openai">OpenAI Intelligence Engine</option>
+        </select>
+      </div>
+      <div>
+        <span class="slabel" style="margin-bottom:6px">Framework Archetype Preset</span>
+        <select id="select-archetype">
+          <option value="standard">Standard Blueprint Engine</option>
+          <option value="packmatic">Packmatic High-Stakes Framework</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" id="compile-blueprint-btn">Compile Custom Target Metrics Framework</button>
+    <div id="packmatic-blueprint" style="display:none; margin-top:18px">
+      <span class="slabel">Ingested Target Architecture Blueprint</span>
+      <div class="bp-header">
+        <div class="bp-avatar" id="bp-avatar">TAR</div>
+        <div class="bp-meta">
+          <h3 id="bp-company">Enterprise Framework Group</h3>
+          <p id="bp-role">Principal Product Stream Lead</p>
+        </div>
+      </div>
+      <div class="bp-grid" id="bp-grid-box"></div>
+    </div>
+  </div>
+
+  <span class="slabel">Session length</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-mode="full"><div class="mct">Full &mdash; 5 questions</div><div class="mcd">Full scoring &middot; session summary &middot; streak</div></div>
+    <div class="mode-card" data-mode="quick"><div class="mct">Quick &mdash; 3 questions</div><div class="mcd">Faster loop &middot; same feedback depth</div></div>
+  </div>
+
+  <span class="slabel">Language</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-lang="en"><div class="mct">English</div><div class="mcd">EN questions &middot; EN scoring</div></div>
+    <div class="mode-card" data-lang="de"><div class="mct">Deutsch</div><div class="mcd">DE Fragen &middot; DE Feedback</div></div>
+  </div>
+
+  <span class="slabel">Answer mode</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-input="voice"><div class="mct">Voice</div><div class="mcd">Speak out loud &middot; live transcript &middot; real pressure</div></div>
+    <div class="mode-card" data-input="text"><div class="mct">Text</div><div class="mcd">Type your answer &middot; no mic needed</div></div>
+  </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="start-session-btn">Initialize Practice Arena &rarr;</button>
+      <button class="btn-ghost" id="reset-history-btn">Reset history</button>
+    </div>
+</div>
+
+<!-- QUESTION -->
+<div id="ph-question" class="phase">
+  <div class="prog-track"><div class="prog-bar" id="prog"></div></div>
+  <div class="q-meta" id="q-meta">Question 1 of 5</div>
+  <div class="q-text fu">Tell me about yourself. Under 90 seconds.</div>
+  <div class="cpar-row" id="cpar-row">
+    <span class="cpar-pill">C &mdash; Context</span>
+    <span class="cpar-pill">P &mdash; Problem</span>
+    <span class="cpar-pill">A &mdash; Action (use "I")</span>
+    <span class="cpar-pill">R &mdash; Result + metric</span>
+  </div>
+  <div id="voice-area" class="rec-box">
+    <div class="timer-row">
+      <div class="rec-status-row"><div class="rec-dot" id="rec-dot"></div><span id="rec-status-text">Ready &mdash; tap to record</span></div>
+      <div class="timer-num" id="timer">0:00</div>
+    </div>
+    <div class="timer-track"><div class="timer-fill" id="timer-bar" style="width:100%"></div></div>
+    <div class="vol-bars" id="vol-bars"><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div></div>
+    <div class="txlive" id="txlive">Your words will appear here as you speak...</div>
+  </div>
+  <div id="text-area" class="rec-box" style="display:none">
+    <div class="timer-row">
+      <span class="slabel" style="margin:0">Type your answer</span>
+      <div class="timer-num" id="timer-text">0:00</div>
+    </div>
+    <div class="timer-track"><div class="timer-fill" id="timer-bar-text" style="width:100%"></div></div>
+    <textarea id="text-answer" rows="6" placeholder="CPAR: Context → Problem → Action (I did...) → Result (metric)..."></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="rec-btn">Start recording</button>
+    <button class="btn" id="submit-btn" style="display:none">Get feedback &rarr;</button>
+    <button class="skip-btn" id="skip-btn">Skip &rarr;</button>
+  </div>
+  <p class="hint" id="q-hint">Min 30s &middot; target 60–90s &middot; stop at 2min</p>
+</div>
+
+<!-- FEEDBACK -->
+<div id="ph-feedback" class="phase">
+  <div class="prog-track"><div class="prog-bar" id="prog-fb"></div></div>
+  <div class="score-card">
+    <svg width="90" height="90" viewBox="0 0 90 90" style="flex-shrink:0">
+      <circle class="rbg" cx="45" cy="45" r="36"/>
+      <circle class="rfg" id="ring-fg" cx="45" cy="45" r="36" stroke="var(--accent)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+      <text class="rnum" id="ring-num" x="45" y="42">&mdash;</text>
+      <text class="rsub" x="45" y="56">/10</text>
+    </svg>
+    <div class="dims">
+      <div class="dim"><div class="dl">Structure</div><div class="dv" id="dc-str">&mdash;</div></div>
+      <div class="dim"><div class="dl">Ownership</div><div class="dv" id="dc-own">&mdash;</div></div>
+      <div class="dim"><div class="dl">Metrics</div><div class="dv" id="dc-met">&mdash;</div></div>
+      <div class="dim"><div class="dl">Overall</div><div class="dv" id="dc-ov">&mdash;</div></div>
+    </div>
+  </div>
+  <div class="tag-row" id="tag-row"></div>
+  <div class="card" style="margin-top:0.75rem">
+    <span class="slabel" id="fb-label">Feedback</span>
+    <div id="fb-stream" class="fb-body">Start recording to receive feedback...</div>
+  </div>
+  <div class="card">
+    <span class="slabel" id="ans-label">Your answer</span>
+    <div id="tx-display" style="font-size:13px;color:var(--ink-ghost);line-height:1.7"></div>
+  </div>
+  <div class="btn-row" id="fb-btns">
+    <button class="btn" id="retry-btn">Try again</button>
+    <button class="btn btn-primary" id="next-btn">Next question &rarr;</button>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="ph-summary" class="phase">
+  <div class="sum-hero">
+    <div class="sum-ring-wrap">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <circle cx="65" cy="65" r="54" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+        <circle id="sum-ring" cx="65" cy="65" r="54" fill="none" stroke="var(--accent)" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"
+          transform="rotate(-90 65 65)"
+          style="transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1),stroke 0.5s"/>
+        <text x="65" y="61" text-anchor="middle" dominant-baseline="central" id="sum-ring-num"
+          style="font-family:'Shippori Mincho',serif;font-size:30px;font-weight:600;fill:var(--ink)">&mdash;</text>
+        <text x="65" y="80" text-anchor="middle"
+          style="font-family:'DM Mono',monospace;font-size:10px;fill:var(--ink-ghost);letter-spacing:0.08em">SCORE</text>
+      </svg>
+    </div>
+    <div class="sum-sub" id="sum-meta">Session complete</div>
+  </div>
+  <div class="sum-metrics">
+    <div class="sm"><div class="smv" id="sum-answered">0</div><div class="sml">answered</div></div>
+    <div class="sm"><div class="smv" id="sum-avg">0</div><div class="sml">avg score</div></div>
+    <div class="sm"><div class="smv" id="sum-time">0m</div><div class="sml">time</div></div>
+  </div>
+  <div class="card"><span class="slabel" id="pat-label">Session patterns</span><ul class="pattern-list" id="pat-list"><li>No sessions yet. Practice to see patterns.</li></ul></div>
+  <div class="card-accent"><span class="slabel" id="pri-label">Priority for tomorrow</span><div id="pri-text" style="font-size:14px;line-height:1.7;color:var(--ink-dim)">Complete a session to unlock personalized recommendations.</div></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="new-btn">New session &rarr;</button>
+    <button class="btn" id="drill-btn">Drill weakest &rarr;</button>
+  </div>
+</div>
+
+</div>
+<script>
+function $id(id) { return document.getElementById(id); }
+function showPhase(phaseId) {
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+  $id(phaseId).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function changePhase(phaseId) { showPhase(phaseId); }
+
+const DRILL_MANIFEST = {
+  Monday: { topic: 'Tell me about yourself', q: 'Walk me through your background as an enterprise product manager.' },
+  Tuesday: { topic: 'Walk me through Flow end to end', q: 'Explain how you orchestrated Flow end-to-end at Lengoo and the delivery friction you solved.' },
+  Wednesday: { topic: 'Signal with numbers', q: 'How did you design, initiate, and implement the Signal dashboard framework at Cognigy across squads?' },
+  Thursday: { topic: 'Stakeholder conflict', q: 'Tell me about a high-stakes stakeholder roadmap conflict you navigated when developing Flow.' },
+  Friday: { topic: 'Hardest decision', q: 'What was the single hardest data prioritization decision you made while co-founding Aneekaa?' },
+  Saturday: { topic: 'Discovery and metrics framework', q: 'How do you systematically pair user discovery telemetry with core quantitative tracking?' },
+  Sunday: { topic: 'Vulnerability Sweep', q: 'Execute your weakest target answer variant from the past week, enforcing flawless structural metrics.' }
+};
+
+const S = {
+  mode: 'full',
+  language: 'en',
+  inputMode: 'voice',
+  keyOpenAI: '',
+  keyClaude: '',
+  activeQuestion: '',
+  timerInterval: null,
+  timeElapsed: 0,
+  mediaRecorder: null,
+  audioChunks: [],
+  lastScore: 0,
+  lastAnalysis: null,
+  lastEvaluation: '',
+  lastBlueprint: null
+};
+
+function selectedValue(selector, fallback) {
+  const el = document.querySelector(selector);
+  return el ? el.dataset[selector.includes('data-input') ? 'input' : selector.includes('data-lang') ? 'lang' : 'mode'] || fallback : fallback;
+}
+
+function getSelectedMode() {
+  return document.querySelector('[data-mode].selected')?.dataset.mode || 'full';
+}
+function getSelectedLang() {
+  return document.querySelector('[data-lang].selected')?.dataset.lang || 'en';
+}
+function getSelectedInput() {
+  return document.querySelector('[data-input].selected')?.dataset.input || 'voice';
+}
+
+function updateKeysState() {
+  S.keyOpenAI = $id('key-openai').value.trim();
+  S.keyClaude = $id('key-claude').value.trim();
+  const dot = $id('status-dot');
+  const label = $id('status-label');
+  if (S.keyOpenAI || S.keyClaude) {
+    dot.classList.add('active');
+    label.textContent = 'API Pipelines Mounted';
+  } else {
+    dot.classList.remove('active');
+    label.textContent = 'Offline Baseline';
+  }
+}
+
+function initRotationSchedule() {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDay = days[new Date().getDay()];
+  const drill = DRILL_MANIFEST[currentDay] || DRILL_MANIFEST.Monday;
+  $id('rotation-day').textContent = `TODAY'S SECTOR TARGET: ${currentDay.toUpperCase()}`;
+  $id('rotation-topic').textContent = `"${drill.q}" [Focus: ${drill.topic}]`;
+  S.activeQuestion = drill.q;
+}
+
+function setScoreRing(targetId, score) {
+  const circle = $id(targetId);
+  if (!circle) return;
+  const dash = 226.2;
+  const offset = dash - (dash * score / 10);
+  circle.style.strokeDashoffset = offset;
+}
+
+function setSummaryRing(score) {
+  const circle = $id('sum-ring');
+  if (!circle) return;
+  const dash = 339.3;
+  const offset = dash - (dash * score / 10);
+  circle.style.strokeDashoffset = offset;
+  $id('sum-ring-num').textContent = score.toFixed(1);
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function setModeCardState(groupSelector, activeSelector) {
+  document.querySelectorAll(groupSelector).forEach(c => c.classList.remove('selected'));
+  document.querySelector(activeSelector)?.classList.add('selected');
+}
+
+function toggleAccordion(head) {
+  head.parentElement.classList.toggle('open');
+}
+
+function analyzeAnswer(text) {
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const metrics = (text.match(/\b\d+%?\b/g) || []).length;
+  const firstPerson = (text.match(/\bI\b/g) || []).length;
+  const collective = (text.match(/\bwe\b/gi) || []).length;
+  const hedges = (text.match(/\b(i think|maybe|probably|kind of|sort of)\b/gi) || []).length;
+  const structureHits = [
+    /\bcontext\b/i.test(text),
+    /\bproblem\b/i.test(text),
+    /\baction\b/i.test(text) || /\bI (did|built|led|owned|executed|decided)\b/i.test(text),
+    /\bresult\b/i.test(text) || /\bpercent\b/i.test(text) || /\b%\b/.test(text)
+  ].filter(Boolean).length;
+
+  const structure = Math.min(10, Math.max(1, structureHits * 2 + (words > 40 ? 2 : 0)));
+  const ownership = Math.min(10, Math.max(1, 10 - collective * 2 + (firstPerson > 3 ? 1 : 0)));
+  const metricScore = Math.min(10, Math.max(1, metrics * 2 + (/\b\d{2,}\b/.test(text) ? 1 : 0)));
+  const overall = Math.max(1, Math.min(10, Math.round((structure + ownership + metricScore) / 3 - hedges * 0.5)));
+
+  const tags = [];
+  if (metrics === 0) tags.push('No metrics');
+  if (collective > 0) tags.push('We statements');
+  if (hedges > 0) tags.push('Hedging');
+  if (words > 140) tags.push('Too long');
+  if (structureHits < 3) tags.push('Weak CPAR');
+  if (!tags.length) tags.push('Strong structure');
+
+  let priority = 'Tighten ownership language and lead with the strongest metric immediately.';
+  if (tags.includes('No metrics')) priority = 'Add one hard number in the first sentence and one outcome metric at the end.';
+  else if (tags.includes('We statements')) priority = 'Replace collective language with clear "I" ownership and a direct decision verb.';
+  else if (tags.includes('Hedging')) priority = 'Remove all hedging words and make the answer more decisive.';
+
+  return { words, structure, ownership, metricScore, overall, tags, priority };
+}
+
+function renderFeedback(analysis, evaluationText, answerText) {
+  S.lastAnalysis = analysis;
+  S.lastScore = analysis.overall;
+  S.lastEvaluation = evaluationText;
+  $id('ring-num').textContent = analysis.overall.toFixed(1);
+  setScoreRing('ring-fg', analysis.overall);
+
+  const dims = [
+    ['dc-str', analysis.structure],
+    ['dc-own', analysis.ownership],
+    ['dc-met', analysis.metricScore],
+    ['dc-ov', analysis.overall]
+  ];
+  dims.forEach(([id, value]) => {
+    $id(id).textContent = value.toFixed ? value.toFixed(1) : value;
+  });
+
+  document.querySelectorAll('.dim').forEach(dim => dim.classList.remove('good', 'warn', 'bad'));
+  if (analysis.structure >= 7) $id('dc-str').parentElement.classList.add('good');
+  else if (analysis.structure >= 4) $id('dc-str').parentElement.classList.add('warn');
+  else $id('dc-str').parentElement.classList.add('bad');
+
+  if (analysis.ownership >= 7) $id('dc-own').parentElement.classList.add('good');
+  else if (analysis.ownership >= 4) $id('dc-own').parentElement.classList.add('warn');
+  else $id('dc-own').parentElement.classList.add('bad');
+
+  if (analysis.metricScore >= 7) $id('dc-met').parentElement.classList.add('good');
+  else if (analysis.metricScore >= 4) $id('dc-met').parentElement.classList.add('warn');
+  else $id('dc-met').parentElement.classList.add('bad');
+
+  if (analysis.overall >= 7) $id('dc-ov').parentElement.classList.add('good');
+  else if (analysis.overall >= 4) $id('dc-ov').parentElement.classList.add('warn');
+  else $id('dc-ov').parentElement.classList.add('bad');
+
+  const tagRow = $id('tag-row');
+  tagRow.innerHTML = '';
+  analysis.tags.forEach(tag => {
+    const span = document.createElement('span');
+    span.className = `tag ${tag === 'Strong structure' ? 'good' : ''}`;
+    span.textContent = tag;
+    tagRow.appendChild(span);
+  });
+  const structureHints = [
+    `Word count: ${analysis.words}`,
+    `Metrics detected: ${analysis.metricScore >= 4 ? 'yes' : 'low'}`,
+    `Ownership: ${analysis.ownership >= 7 ? 'strong' : 'needs tightening'}`
+  ];
+  structureHints.forEach(h => {
+    const span = document.createElement('span');
+    span.className = 'tag accent';
+    span.textContent = h;
+    tagRow.appendChild(span);
+  });
+
+  $id('fb-stream').textContent = evaluationText;
+  $id('tx-display').textContent = answerText || 'No answer captured yet.';
+  $id('sum-answered').textContent = '1';
+  $id('sum-avg').textContent = analysis.overall.toFixed(1);
+  $id('sum-time').textContent = `${Math.max(1, Math.round(S.timeElapsed / 60))}m`;
+  $id('pat-list').innerHTML = analysis.tags.map(tag => `<li><strong>${tag}:</strong> ${analysis.priority}</li>`).join('');
+  $id('pri-text').textContent = analysis.priority;
+  setSummaryRing(analysis.overall);
+}
+
+function updateQuestionUI() {
+  const mode = getSelectedMode();
+  S.mode = mode;
+  S.language = getSelectedLang();
+  S.inputMode = getSelectedInput();
+  const total = mode === 'quick' ? 3 : 5;
+  $id('q-meta').textContent = `Question 1 of ${total}`;
+  $id('q-text').textContent = S.activeQuestion || 'Tell me about yourself. Under 90 seconds.';
+  $id('q-hint').textContent = mode === 'quick'
+    ? 'Min 20s · target 45–60s · stop at 90s'
+    : 'Min 30s · target 60–90s · stop at 2min';
+  $id('voice-area').style.display = S.inputMode === 'voice' ? 'block' : 'none';
+  $id('text-area').style.display = S.inputMode === 'text' ? 'block' : 'none';
+  $id('submit-btn').style.display = 'inline-flex';
+  $id('rec-btn').textContent = 'Start recording';
+  $id('rec-btn').disabled = false;
+  $id('rec-status-text').textContent = 'Ready — tap to record';
+  $id('rec-dot').classList.remove('on');
+  $id('voice-area').classList.remove('live');
+  $id('txlive').textContent = 'Your words will appear here as you speak...';
+  $id('txlive').classList.remove('has-text');
+  $id('timer').textContent = '0:00';
+  $id('timer-bar').style.width = '100%';
+  $id('timer').className = 'timer-num';
+  $id('text-answer').value = '';
+}
+
+function launchPracticeSession() {
+  S.lastAnalysis = null;
+  S.lastEvaluation = '';
+  $id('fb-stream').textContent = 'Start recording or type your answer to receive feedback...';
+  updateQuestionUI();
+  startTrackingTimer();
+  showPhase('ph-question');
+}
+
+function startTrackingTimer() {
+  clearInterval(S.timerInterval);
+  S.timeElapsed = 0;
+  const display = $id('timer');
+  const fillBar = $id('timer-bar');
+  display.className = 'timer-num';
+  fillBar.style.width = '100%';
+  S.timerInterval = setInterval(() => {
+    S.timeElapsed++;
+    display.textContent = formatTime(S.timeElapsed);
+    const progressPct = Math.max(0, 100 - Math.min((S.timeElapsed / 120) * 100, 100));
+    fillBar.style.width = `${progressPct}%`;
+    if (S.timeElapsed >= 60 && S.timeElapsed < 90) display.className = 'timer-num warn';
+    else if (S.timeElapsed >= 90) display.className = 'timer-num danger';
+  }, 1000);
+}
+
+function stopTrackingTimer() {
+  clearInterval(S.timerInterval);
+}
+
+async function toggleRecordingState() {
+  const btn = $id('rec-btn');
+  if (S.mediaRecorder && S.mediaRecorder.state === 'recording') {
+    S.mediaRecorder.stop();
+    btn.textContent = 'Processing Voice Track...';
+    btn.disabled = true;
+    $id('rec-status-text').textContent = 'Processing transcript...';
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    alert('This browser does not support microphone access.');
+    return;
+  }
+
+  try {
+    S.audioChunks = [];
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    S.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    S.mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) S.audioChunks.push(e.data);
+    };
+    S.mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(S.audioChunks, { type: 'audio/webm' });
+      stream.getTracks().forEach(track => track.stop());
+      $id('rec-dot').classList.remove('on');
+      $id('voice-area').classList.remove('live');
+      $id('rec-status-text').textContent = 'Transcribing...';
+      if (!S.keyOpenAI) {
+        $id('txlive').textContent = 'Audio captured. Add an OpenAI key to transcribe automatically, or type your answer manually.';
+        btn.textContent = 'Start recording';
+        btn.disabled = false;
+        $id('rec-status-text').textContent = 'Ready — tap to record';
+        return;
+      }
+
+      try {
+        const fd = new FormData();
+        fd.append('model', 'whisper-1');
+        fd.append('file', audioBlob, 'answer.webm');
+        if (S.language === 'de') fd.append('language', 'de');
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${S.keyOpenAI}` },
+          body: fd
+        });
+        const jsonOut = await response.json();
+        if (jsonOut.text) {
+          $id('text-answer').value = jsonOut.text;
+          $id('txlive').textContent = jsonOut.text;
+          $id('txlive').classList.add('has-text');
+        } else if (jsonOut.error) {
+          alert(`Transcription engine failure: ${jsonOut.error.message || jsonOut.error}`);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error communicating with the transcription endpoint.');
+      } finally {
+        btn.textContent = 'Start recording';
+        btn.disabled = false;
+        $id('rec-status-text').textContent = 'Ready — tap to record';
+      }
+    };
+
+    S.mediaRecorder.start();
+    $id('rec-dot').classList.add('on');
+    $id('voice-area').classList.add('live');
+    $id('rec-status-text').textContent = 'Recording live speech...';
+    btn.textContent = 'Stop & Build Transcript';
+  } catch (err) {
+    console.error(err);
+    alert('Microphone permission denied or device configuration access error.');
+  }
+}
+
+function getAnswerText() {
+  const textAnswer = $id('text-answer').value.trim();
+  return textAnswer;
+}
+
+async function processEvaluation() {
+  const answerText = getAnswerText();
+  if (!answerText) {
+    alert('Please record an audio track or enter response parameters first.');
+    return;
+  }
+
+  stopTrackingTimer();
+  showPhase('ph-feedback');
+  const container = $id('fb-stream');
+  container.innerHTML = '<div class="dots"><span></span><span></span><span></span><div class="dots-msg">Compiling metric diagnostic evaluations across active channels...</div></div>';
+
+  const analysis = analyzeAnswer(answerText);
+  let evaluationText = '';
+
+  if (!S.keyClaude) {
+    evaluationText = `Offline structural analysis:\n\n• Your response contains ${analysis.words} words.\n• Structure score is ${analysis.structure}/10.\n• Ownership score is ${analysis.ownership}/10.\n• Metric usage score is ${analysis.metricScore}/10.\n\n${analysis.priority}`;
+    renderFeedback(analysis, evaluationText, answerText);
+    return;
+  }
+
+  const evalPrompt = `
+You are an expert executive communication auditor. Analyze this product manager interview response for an elite role.
+Target Question Asked: "${S.activeQuestion}"
+User Response Submitted: "${answerText}"
+
+Evaluate using these specific criteria metrics:
+1. Did they say "We" instead of "I"? (Flag extreme structural ownership failures)
+2. Did they include clear specific numerical proofs within the absolute first phrase sentence?
+3. Are there filler or hedging expressions present ("I think", "maybe", "probably")?
+
+Provide exactly 3 to 4 high-leverage sentences. Be brutally direct, concise, and end with one clear prescriptive adjustment.
+  `.trim();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': S.keyClaude,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: evalPrompt }]
+      })
+    });
+    const resData = await response.json();
+    if (resData.content && resData.content[0]) {
+      evaluationText = resData.content[0].text;
+    } else {
+      evaluationText = 'Error parsing responses out of live intelligence models.';
+    }
+  } catch (err) {
+    console.error(err);
+    evaluationText = 'API network connection failure occurred. Default to tracking baseline checklists below.';
+  }
+
+  renderFeedback(analysis, evaluationText, answerText);
+}
+
+function updateSummaryFromFeedback() {
+  const analysis = S.lastAnalysis || analyzeAnswer(getAnswerText());
+  $id('sum-answered').textContent = '1';
+  $id('sum-avg').textContent = analysis.overall.toFixed(1);
+  $id('sum-time').textContent = `${Math.max(1, Math.round(S.timeElapsed / 60))}m`;
+  $id('pat-list').innerHTML = analysis.tags.map(tag => `<li><strong>${tag}:</strong> ${analysis.priority}</li>`).join('');
+  $id('pri-text').textContent = analysis.priority;
+  setSummaryRing(analysis.overall);
+}
+
+function compileAdaptiveBlueprint() {
+  const text = $id('jd-input').value.trim();
+  const provider = $id('select-provider').value;
+  const archetype = $id('select-archetype').value;
+  if (!text) {
+    alert('Please input target description text parameters.');
+    return;
+  }
+
+  let company = 'Strategic Target Corp';
+  let role = 'Principal Product Stream Lead';
+  if (/tech|ai/i.test(text)) company = 'Nexus AI Platforms';
+  else if (/fintech|payment/i.test(text)) company = 'PayNexus Solutions';
+  else if (/logistic|supply/i.test(text)) company = 'LogiChain Logistics';
+
+  const blueprint = {
+    company,
+    role,
+    engine: `${provider === 'claude' ? 'Claude' : 'OpenAI'} · ${archetype === 'packmatic' ? 'Packmatic' : 'Standard'} mode`,
+    cards: [
+      {
+        tag: 'INGESTION MATRIX 01',
+        title: 'Scale Dependency Bottlenecks',
+        desc: 'Requires system workflow mapping. Inject your <span>Lengoo Flow orchestration frameworks</span>.'
+      },
+      {
+        tag: 'CORE PRIORITY MEASURE',
+        title: 'Velocity Metric Tracking',
+        desc: 'Cross-squad friction resolution challenges. Defend output levels with <span>Cognigy Signal blueprints</span>.'
+      },
+      {
+        tag: 'EXECUTION', title: 'Outcome Defensibility',
+        desc: 'Tie every roadmap decision back to measurable product movement and explicit trade-offs.'
+      },
+      {
+        tag: 'QUALITY', title: 'Launch Confidence',
+        desc: 'Use a narrow scope, clear ownership, and a hard metric to show readiness under pressure.'
+      }
+    ]
+  };
+
+  S.lastBlueprint = blueprint;
+  $id('packmatic-blueprint').style.display = 'block';
+  $id('bp-company').textContent = blueprint.company;
+  $id('bp-role').textContent = blueprint.role;
+  $id('bp-avatar').textContent = blueprint.company.substring(0, 3).toUpperCase();
+  $id('bp-grid-box').innerHTML = blueprint.cards.map(card => `
+    <div class="bp-card">
+      <div class="bp-tag">${card.tag}</div>
+      <div class="bp-title">${card.title}</div>
+      <div class="bp-desc">${card.desc}</div>
+    </div>
+  `).join('');
+
+  S.activeQuestion = `How would you align product engineering priorities at ${blueprint.company} to support rapid feature scaling while addressing core systemic bottlenecks?`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initRotationSchedule();
+  updateQuestionUI();
+
+  document.querySelectorAll('[data-mode]').forEach(card => {
+    card.addEventListener('click', function () {
+      document.querySelectorAll('[data-mode]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      S.mode = this.dataset.mode;
+      updateQuestionUI();
+    });
+  });
+
+  document.querySelectorAll('[data-lang]').forEach(card => {
+    card.addEventListener('click', function () {
+      document.querySelectorAll('[data-lang]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      S.language = this.dataset.lang;
+      updateQuestionUI();
+    });
+  });
+
+  document.querySelectorAll('[data-input]').forEach(card => {
+    card.addEventListener('click', function () {
+      document.querySelectorAll('[data-input]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      S.inputMode = this.dataset.input;
+      updateQuestionUI();
+    });
+  });
+
+  $id('start-session-btn').addEventListener('click', () => {
+    launchPracticeSession();
+  });
+
+  $id('reset-history-btn').addEventListener('click', () => {
+    localStorage.removeItem('gemini-code-stats');
+    S.lastAnalysis = null;
+    S.lastScore = 0;
+    updateQuestionUI();
+    initRotationSchedule();
+    showPhase('ph-setup');
+  });
+
+  $id('compile-blueprint-btn').addEventListener('click', compileAdaptiveBlueprint);
+
+  $id('skip-btn').addEventListener('click', () => {
+    stopTrackingTimer();
+    $id('fb-stream').textContent = 'Skipped. Review the self-audit items below, then try the question again.';
+    $id('tx-display').textContent = getAnswerText() || 'No answer captured.';
+    showPhase('ph-feedback');
+  });
+
+  $id('submit-btn').addEventListener('click', processEvaluation);
+
+  $id('retry-btn').addEventListener('click', () => {
+    updateQuestionUI();
+    startTrackingTimer();
+    showPhase('ph-question');
+  });
+
+  $id('next-btn').addEventListener('click', () => {
+    updateSummaryFromFeedback();
+    showPhase('ph-summary');
+  });
+
+  $id('new-btn').addEventListener('click', () => {
+    updateQuestionUI();
+    showPhase('ph-setup');
+  });
+
+  $id('drill-btn').addEventListener('click', () => {
+    launchPracticeSession();
+  });
+
+  $id('rec-btn').addEventListener('click', toggleRecordingState);
+
+  document.querySelectorAll('.api-eye').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.eyeFor;
+      const input = $id(targetId);
+      if (input) input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  });
+
+  document.getElementById('key-openai').addEventListener('input', updateKeysState);
+  document.getElementById('key-claude').addEventListener('input', updateKeysState);
+  updateKeysState();
+});
+</script>
+</body>
+</html>

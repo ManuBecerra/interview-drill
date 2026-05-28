@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Interview Drill — Manuel Becerra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0e;--bg2:#141414;--bg3:#1a1a1a;
+  --surface:#242424;--surface2:#2e2e2e;
+  --ink:#f5f5f0;--ink-dim:#999990;--ink-ghost:#555550;
+  --accent:#e8ff00;--accent-dim:rgba(232,255,0,0.1);--accent-hover:#d4eb00;
+  --border:rgba(245,245,240,0.08);--border-med:rgba(245,245,240,0.14);--border-strong:rgba(245,245,240,0.24);
+  --danger:#e05050;--danger-bg:rgba(224,80,80,0.1);
+  --warn:#d49040;--warn-bg:rgba(212,144,64,0.1);
+  --success:#50a070;--success-bg:rgba(80,160,112,0.1);
+  --sage:#6fcf97;
+  --gold:#c8a840;--gold-bg:rgba(200,168,64,0.1);
+  --r:8px;--rl:12px;
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.6}
+.shell{max-width:680px;margin:0 auto;padding:0 1.5rem 5rem}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;border-bottom:1px solid var(--border);margin-bottom:3rem}
+.nav-logo{font-family:'Shippori Mincho',serif;font-size:16px;font-weight:600;letter-spacing:0.03em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:3px}
+.nav-dot{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:14px}
+.nav-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase}
+.streak-pill{display:none;align-items:center;gap:4px;background:var(--gold-bg);border:1px solid rgba(200,168,64,0.2);border-radius:20px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.04em}
+
+/* PHASES */
+.phase{display:none}.phase.active{display:block}
+
+/* HERO */
+.hero{padding:3rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+.hero-title{font-family:'Shippori Mincho',serif;font-size:clamp(30px,5vw,50px);font-weight:600;line-height:1.1;margin-bottom:1.25rem;color:var(--ink)}
+.hero-title .acc{color:var(--accent)}
+.hero-desc{font-size:15px;color:var(--ink-dim);line-height:1.7;max-width:540px;margin-bottom:2rem}
+.hero-stats{display:flex;gap:2.5rem;flex-wrap:wrap;margin-top:1.5rem}
+.hero-stat .hsv{font-family:'Shippori Mincho',serif;font-size:28px;font-weight:600;color:var(--accent);line-height:1;margin-bottom:3px}
+.hero-stat .hsl{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase}
+
+/* TREND CARD */
+.trend-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:2rem}
+.trend-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.trend-lbl{font-size:13px;color:var(--ink-dim);font-weight:500}
+.trend-best{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-ghost)}
+.trend-bars{display:flex;align-items:flex-end;gap:8px;height:56px}
+.tb-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.tb{width:100%;border-radius:3px 3px 0 0;min-height:3px;background:var(--surface2);transition:height 0.5s cubic-bezier(0.4,0,0.2,1)}
+.tb.a{background:var(--accent)}.tb.w{background:var(--warn)}.tb.d{background:var(--danger)}.tb.e{opacity:0.3}
+.tb-date{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);text-align:center}
+.trend-empty{font-size:13px;color:var(--ink-ghost);text-align:center;padding:16px 0}
+
+/* SECTION LABEL */
+.slabel{display:block;font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px}
+
+/* CARD */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-success{background:var(--success-bg);border:1px solid rgba(80,160,112,0.2);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card-accent{background:var(--accent-dim);border:1px solid rgba(232,255,0,0.15);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem}
+
+/* MODE GRID */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.mode-card{border:1px solid var(--border-med);border-radius:var(--rl);padding:1rem 1.125rem;cursor:pointer;background:var(--bg3);transition:border-color 0.15s,background 0.15s;-webkit-tap-highlight-color:transparent}
+.mode-card:hover{border-color:var(--border-strong);background:var(--surface)}
+.mode-card.selected{border:1.5px solid var(--accent);background:var(--accent-dim)}
+.mode-card .mct{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:3px}
+.mode-card .mcd{font-size:12px;color:var(--ink-ghost);line-height:1.4}
+
+/* INPUTS */
+input[type=text],input[type=password],textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--border-med);border-radius:var(--r);padding:10px 14px;outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+input::placeholder,textarea::placeholder{color:var(--ink-ghost)}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:100px;line-height:1.6}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:11px 20px;border-radius:var(--r);border:1px solid var(--border-med);background:transparent;color:var(--ink);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px}
+.btn:hover{background:var(--surface2);border-color:var(--border-strong)}.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:#000;border-color:transparent;font-weight:600}.btn-primary:hover{background:var(--accent-hover)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:1.5rem;align-items:center}
+.btn-ghost{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-ghost);cursor:pointer;text-decoration:underline;-webkit-tap-highlight-color:transparent}
+
+/* PROGRESS */
+.prog-track{height:2px;background:var(--surface2);border-radius:1px;margin-bottom:2rem}
+.prog-bar{height:100%;background:var(--accent);border-radius:1px;transition:width 0.4s ease}
+
+/* QUESTION */
+.q-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px}
+.q-text{font-family:'Shippori Mincho',serif;font-size:clamp(18px,3vw,23px);font-weight:600;line-height:1.4;margin-bottom:1.5rem;color:var(--ink)}
+.cpar-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
+.cpar-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.04em;padding:3px 9px;border-radius:20px;background:var(--surface);color:var(--ink-ghost);border:1px solid var(--border)}
+.cpar-pill:first-child{border-color:rgba(232,255,0,0.25);color:rgba(232,255,0,0.75)}
+
+/* TIMER + REC */
+.timer-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.timer-num{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.timer-num.warn{color:var(--warn)}.timer-num.danger{color:var(--danger)}
+.timer-track{height:3px;background:var(--surface2);border-radius:2px;margin-bottom:1rem;overflow:hidden}
+.timer-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 1s linear,background 0.5s}
+.rec-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1rem;transition:border-color 0.3s}
+.rec-box.live{border-color:rgba(224,80,80,0.4)}
+.rec-status-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);margin-bottom:12px}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--ink-ghost);flex-shrink:0}
+.rec-dot.on{background:var(--danger);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.vol-bars{display:flex;align-items:flex-end;gap:3px;height:22px;margin-bottom:10px}
+.vb{width:3px;border-radius:2px;background:var(--surface2);min-height:3px;transition:height 0.08s}
+.txlive{font-size:14px;color:var(--ink-ghost);line-height:1.7;min-height:60px;font-style:italic}
+.txlive.has-text{font-style:normal;color:var(--ink)}
+
+/* SCORE RING */
+.score-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;display:flex;gap:1.5rem;align-items:center;margin-bottom:1rem}
+.rbg{fill:none;stroke:var(--surface2);stroke-width:8}
+.rfg{fill:none;stroke-width:8;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1),stroke 0.5s}
+.rnum{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;fill:var(--ink);dominant-baseline:central;text-anchor:middle;font-variant-numeric:tabular-nums}
+.rsub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;fill:var(--ink-ghost);dominant-baseline:central;text-anchor:middle}
+.dims{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dim{background:var(--surface);border-radius:var(--r);padding:8px 10px}
+.dim .dl{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px}
+.dim .dv{font-size:16px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.dim.good .dv{color:var(--accent)}.dim.warn .dv{color:var(--warn)}.dim.bad .dv{color:var(--danger)}
+
+/* TAGS */
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--danger-bg);color:var(--danger);border:1px solid rgba(224,80,80,0.2)}
+.tag.good{background:var(--success-bg);color:var(--success);border-color:rgba(80,160,112,0.2)}
+.tag.accent{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,255,0,0.2)}
+
+/* FEEDBACK */
+.fb-body{font-size:14px;line-height:1.8;color:var(--ink-dim);white-space:pre-wrap}
+.fb-body strong{color:var(--ink);font-weight:500}
+
+/* SELF RATE */
+.rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem}
+.rate-cell{border:1px solid var(--border-med);border-radius:var(--r);padding:10px 12px;background:var(--bg3)}
+.rate-cell .rl{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
+.stars{display:flex;gap:4px}
+.star{font-size:18px;cursor:pointer;color:var(--surface2);transition:color 0.1s;-webkit-tap-highlight-color:transparent}
+.star.on{color:var(--accent)}
+
+/* API */
+.api-row{display:flex;gap:8px;align-items:center}.api-row input{flex:1}
+.api-eye{background:none;border:1px solid var(--border-med);border-radius:var(--r);font-size:14px;cursor:pointer;padding:0 10px;height:42px;color:var(--ink-ghost);transition:background 0.15s}
+.api-eye:hover{background:var(--surface)}
+
+/* LOADING */
+.dots{display:flex;gap:5px;align-items:center;padding:1.5rem 0}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--ink-ghost);animation:bounce 1.2s infinite}
+.dots span:nth-child(2){animation-delay:0.2s}.dots span:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+.dots-msg{font-size:14px;color:var(--ink-ghost);margin-left:10px}
+
+/* SUMMARY */
+.sum-hero{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+.sum-ring-wrap{display:inline-block;margin-bottom:1rem}
+.sum-sub{font-size:13px;color:var(--ink-ghost)}
+.sum-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.sm{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1rem;text-align:center}
+.sm .smv{font-family:'Shippori Mincho',serif;font-size:24px;font-weight:600;color:var(--ink);margin-bottom:3px;font-variant-numeric:tabular-nums}
+.sm .sml{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink-ghost);letter-spacing:0.07em;text-transform:uppercase}
+.pattern-list{list-style:none}
+.pattern-list li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--ink-dim);display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+.pattern-list li:last-child{border-bottom:none}
+
+/* MISC */
+.hint{font-size:12px;color:var(--ink-ghost);margin-top:6px;line-height:1.5}
+.skip-btn{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-ghost);cursor:pointer;text-decoration:underline;-webkit-tap-highlight-color:transparent}
+.skip-btn:hover{color:var(--ink-dim)}
+h1{font-family:'Shippori Mincho',serif;font-size:26px;font-weight:600;line-height:1.3;margin-bottom:0.5rem;color:var(--ink)}
+h2{font-family:'Shippori Mincho',serif;font-size:20px;font-weight:600;margin-bottom:0.75rem;color:var(--ink)}
+.sub{font-size:14px;color:var(--ink-dim);line-height:1.6;margin-bottom:1.75rem}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp 0.3s ease forwards}
+@media(max-width:520px){.shell{padding:0 1rem 4rem}.hero-title{font-size:28px}.score-card{flex-direction:column}.dims{grid-template-columns:1fr 1fr}.hero-stats{gap:1.5rem}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav>
+  <a href="#" class="nav-logo">Manuel Becerra<span class="nav-dot">.</span></a>
+  <div class="nav-right">
+    <div class="streak-pill" id="streak-pill">&#128293; <span id="streak-num">0</span></div>
+    <span class="nav-tag">Interview Coach</span>
+  </div>
+</nav>
+
+<!-- SETUP -->
+<div id="ph-setup" class="phase active">
+  <div class="hero">
+    <div class="hero-eyebrow"><span class="eyebrow-dot"></span>PM Interview Coach &middot; Live</div>
+    <h1 class="hero-title">Ship better<br>interview answers<span class="acc">.</span></h1>
+    <p class="hero-desc">Practice in real time, get precise scoring on every answer, and convert weak patterns into measurable improvement.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hsv" id="st-sessions">&#x2014;</div><div class="hsl">Sessions</div></div>
+      <div class="hero-stat"><div class="hsv" id="st-avg">&#x2014;</div><div class="hsl">Avg score</div></div>
+      <div class="hero-stat"><div class="hsv" id="st-streak">&#x2014;</div><div class="hsl">Day streak</div></div>
+    </div>
+  </div>
+
+  <div class="trend-card">
+    <div class="trend-hdr">
+      <span class="trend-lbl">Last 7 sessions</span>
+      <span class="trend-best" id="trend-best"></span>
+    </div>
+    <div class="trend-bars" id="trend-bars"></div>
+  </div>
+
+  <div class="card">
+    <span class="slabel">API Configuration</span>
+    <div class="api-row">
+      <input type="password" id="api-key" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+      <button class="api-eye">&#128065;</button>
+    </div>
+    <p class="hint">Enter your API key for personalized feedback.</p>
+  </div>
+
+  <div class="card">
+    <span class="slabel">Job description (optional)</span>
+    <textarea id="jd-input" rows="3" placeholder="Paste the role and responsibilities. Leave blank for standard questions."></textarea>
+  </div>
+
+  <span class="slabel">Session length</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-mode="full"><div class="mct">Full &mdash; 5 questions</div><div class="mcd">Full scoring &middot; session summary &middot; streak</div></div>
+    <div class="mode-card" data-mode="quick"><div class="mct">Quick &mdash; 3 questions</div><div class="mcd">Faster loop &middot; same feedback depth</div></div>
+  </div>
+
+  <span class="slabel">Language</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-lang="en"><div class="mct">English</div><div class="mcd">EN questions &middot; EN scoring</div></div>
+    <div class="mode-card" data-lang="de"><div class="mct">Deutsch</div><div class="mcd">DE Fragen &middot; DE Feedback</div></div>
+  </div>
+
+  <span class="slabel">Answer mode</span>
+  <div class="mode-grid">
+    <div class="mode-card selected" data-input="voice"><div class="mct">Voice</div><div class="mcd">Speak out loud &middot; live transcript &middot; real pressure</div></div>
+    <div class="mode-card" data-input="text"><div class="mct">Text</div><div class="mcd">Type your answer &middot; no mic needed</div></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary">Start session &rarr;</button>
+    <button class="btn-ghost">Reset history</button>
+  </div>
+</div>
+
+<!-- QUESTION -->
+<div id="ph-question" class="phase">
+  <div class="prog-track"><div class="prog-bar" id="prog"></div></div>
+  <div class="q-meta" id="q-meta">Question 1 of 5</div>
+  <div class="q-text fu">Tell me about yourself. Under 90 seconds.</div>
+  <div class="cpar-row" id="cpar-row">
+    <span class="cpar-pill">C &mdash; Context</span>
+    <span class="cpar-pill">P &mdash; Problem</span>
+    <span class="cpar-pill">A &mdash; Action (use "I")</span>
+    <span class="cpar-pill">R &mdash; Result + metric</span>
+  </div>
+  <div id="voice-area" class="rec-box">
+    <div class="timer-row">
+      <div class="rec-status-row"><div class="rec-dot" id="rec-dot"></div><span id="rec-status-text">Ready &mdash; tap to record</span></div>
+      <div class="timer-num" id="timer">0:00</div>
+    </div>
+    <div class="timer-track"><div class="timer-fill" id="timer-bar" style="width:100%"></div></div>
+    <div class="vol-bars" id="vol-bars"><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div><div class="vb"></div></div>
+    <div class="txlive" id="txlive">Your words will appear here as you speak...</div>
+  </div>
+  <div id="text-area" class="rec-box" style="display:none">
+    <div class="timer-row">
+      <span class="slabel" style="margin:0">Type your answer</span>
+      <div class="timer-num" id="timer-text">0:00</div>
+    </div>
+    <div class="timer-track"><div class="timer-fill" id="timer-bar-text" style="width:100%"></div></div>
+    <textarea id="text-answer" rows="6" placeholder="CPAR: Context → Problem → Action (I did...) → Result (metric)..."></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="rec-btn">Start recording</button>
+    <button class="btn" id="submit-btn" style="display:none">Get feedback &rarr;</button>
+    <button class="skip-btn" id="skip-btn">Skip &rarr;</button>
+  </div>
+  <p class="hint" id="q-hint">Min 30s &middot; target 60–90s &middot; stop at 2min</p>
+</div>
+
+<!-- FEEDBACK -->
+<div id="ph-feedback" class="phase">
+  <div class="prog-track"><div class="prog-bar" id="prog-fb"></div></div>
+  <div class="score-card">
+    <svg width="90" height="90" viewBox="0 0 90 90" style="flex-shrink:0">
+      <circle class="rbg" cx="45" cy="45" r="36"/>
+      <circle class="rfg" id="ring-fg" cx="45" cy="45" r="36" stroke="var(--accent)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+      <text class="rnum" id="ring-num" x="45" y="42">&mdash;</text>
+      <text class="rsub" x="45" y="56">/10</text>
+    </svg>
+    <div class="dims">
+      <div class="dim"><div class="dl">Structure</div><div class="dv" id="dc-str">&mdash;</div></div>
+      <div class="dim"><div class="dl">Ownership</div><div class="dv" id="dc-own">&mdash;</div></div>
+      <div class="dim"><div class="dl">Metrics</div><div class="dv" id="dc-met">&mdash;</div></div>
+      <div class="dim"><div class="dl">Overall</div><div class="dv" id="dc-ov">&mdash;</div></div>
+    </div>
+  </div>
+  <div class="tag-row" id="tag-row"></div>
+  <div class="card" style="margin-top:0.75rem">
+    <span class="slabel" id="fb-label">Feedback</span>
+    <div id="fb-stream" class="fb-body">Start recording to receive feedback...</div>
+  </div>
+  <div class="card">
+    <span class="slabel" id="ans-label">Your answer</span>
+    <div id="tx-display" style="font-size:13px;color:var(--ink-ghost);line-height:1.7"></div>
+  </div>
+  <div class="btn-row" id="fb-btns">
+    <button class="btn" id="retry-btn">Try again</button>
+    <button class="btn btn-primary" id="next-btn">Next question &rarr;</button>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="ph-summary" class="phase">
+  <div class="sum-hero">
+    <div class="sum-ring-wrap">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <circle cx="65" cy="65" r="54" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+        <circle id="sum-ring" cx="65" cy="65" r="54" fill="none" stroke="var(--accent)" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"
+          transform="rotate(-90 65 65)"
+          style="transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1),stroke 0.5s"/>
+        <text x="65" y="61" text-anchor="middle" dominant-baseline="central" id="sum-ring-num"
+          style="font-family:'Shippori Mincho',serif;font-size:30px;font-weight:600;fill:var(--ink)">&mdash;</text>
+        <text x="65" y="80" text-anchor="middle"
+          style="font-family:'DM Mono',monospace;font-size:10px;fill:var(--ink-ghost);letter-spacing:0.08em">SCORE</text>
+      </svg>
+    </div>
+    <div class="sum-sub" id="sum-meta">Session complete</div>
+  </div>
+  <div class="sum-metrics">
+    <div class="sm"><div class="smv" id="sum-answered">0</div><div class="sml">answered</div></div>
+    <div class="sm"><div class="smv" id="sum-avg">0</div><div class="sml">avg score</div></div>
+    <div class="sm"><div class="smv" id="sum-time">0m</div><div class="sml">time</div></div>
+  </div>
+  <div class="card"><span class="slabel" id="pat-label">Session patterns</span><ul class="pattern-list" id="pat-list"><li>No sessions yet. Practice to see patterns.</li></ul></div>
+  <div class="card-accent"><span class="slabel" id="pri-label">Priority for tomorrow</span><div id="pri-text" style="font-size:14px;line-height:1.7;color:var(--ink-dim)">Complete a session to unlock personalized recommendations.</div></div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="new-btn">New session &rarr;</button>
+    <button class="btn" id="drill-btn">Drill weakest &rarr;</button>
+  </div>
+</div>
+
+</div>
+<script>
+// Simple demo script to show page transitions
+function $id(id) { return document.getElementById(id); }
+function showPhase(phaseId) {
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+  $id(phaseId).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Mode selection
+  document.querySelectorAll('[data-mode]').forEach(card => {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('[data-mode]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('[data-lang]').forEach(card => {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('[data-lang]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('[data-input]').forEach(card => {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('[data-input]').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+      const isText = this.dataset.input === 'text';
+      $id('voice-area').style.display = isText ? 'none' : 'block';
+      $id('text-area').style.display = isText ? 'block' : 'none';
+    });
+  });
+
+  // Start session button
+  document.querySelector('.btn-primary').addEventListener('click', () => {
+    showPhase('ph-question');
+  });
+
+  // Navigation
+  document.querySelector('.nav-logo').addEventListener('click', (e) => {
+    e.preventDefault();
+    showPhase('ph-setup');
+  });
+
+  // Skip button
+  $id('skip-btn').addEventListener('click', () => {
+    showPhase('ph-feedback');
+  });
+
+  // Submit button
+  $id('submit-btn').addEventListener('click', () => {
+    showPhase('ph-feedback');
+  });
+
+  // Feedback buttons
+  $id('retry-btn').addEventListener('click', () => {
+    showPhase('ph-question');
+  });
+
+  $id('next-btn').addEventListener('click', () => {
+    showPhase('ph-summary');
+  });
+
+  // Summary buttons
+  $id('new-btn').addEventListener('click', () => {
+    showPhase('ph-setup');
+  });
+
+  $id('drill-btn').addEventListener('click', () => {
+    showPhase('ph-question');
+  });
+
+  // API key toggle
+  const apiKeyInputs = document.querySelectorAll('input[type="password"]');
+  document.querySelectorAll('.api-eye').forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      if (apiKeyInputs[idx]) {
+        apiKeyInputs[idx].type = apiKeyInputs[idx].type === 'password' ? 'text' : 'password';
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
