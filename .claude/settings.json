@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(open \"/Users/manu-lengoo/Desktop/Code & Tools/CoworkStation/HTML & PHP/Interview-drill/template-drill-ai.html\")",
+      "Bash(tail -n +46 \"/Users/manu-lengoo/Desktop/Code & Tools/CoworkStation/HTML & PHP/Interview-drill/template-drill-ai.html\" | sed 's/^?>//' > /tmp/drill-clean.html && mv /tmp/drill-clean.html \"/Users/manu-lengoo/Desktop/Code & Tools/CoworkStation/HTML & PHP/Interview-drill/template-drill-ai.html\" && open \"/Users/manu-lengoo/Desktop/Code & Tools/CoworkStation/HTML & PHP/Interview-drill/template-drill-ai.html\")"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
