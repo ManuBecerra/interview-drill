@@ -1,20 +1,4 @@
-<?php
-/* Template Name: Interview Drill */
-if($_SERVER['REQUEST_METHOD']==='POST'&&(($_POST['action']??'')==='transcribe')){
-  header('Content-Type: application/json; charset=utf-8');
-  $apiKey=trim($_POST['openai_key']??'');
-  $lang=trim($_POST['lang']??'');
-  if($apiKey===''){http_response_code(400);echo json_encode(['error'=>'Missing OpenAI API key']);exit;}
-  if(empty($_FILES['audio']['tmp_name'])||!is_uploaded_file($_FILES['audio']['tmp_name'])){http_response_code(400);echo json_encode(['error'=>'Missing audio upload']);exit;}
-  $ch=curl_init('https://api.openai.com/v1/audio/transcriptions');
-  $payload=['model'=>'gpt-4o-mini-transcribe','file'=>new CURLFile($_FILES['audio']['tmp_name'],$_FILES['audio']['type']?:'audio/webm',$_FILES['audio']['name']?:'answer.webm')];
-  if($lang==='en'||$lang==='de')$payload['language']=$lang;
-  curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$payload,CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$apiKey]]);
-  $raw=curl_exec($ch);$status=curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$err=curl_error($ch);curl_close($ch);
-  if($raw===false){http_response_code(500);echo json_encode(['error'=>$err?:'OpenAI transcription failed']);exit;}
-  http_response_code($status?:200);echo $raw;exit;
-}
-?><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -275,6 +259,22 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 .pick-item:hover{color:var(--ink)}
 .pick-day{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost)}
 
+/* STUDY CARD (Daily Practice rehearsal step) */
+.study-q{font-family:'Shippori Mincho',serif;font-size:clamp(19px,3.2vw,26px);font-weight:600;line-height:1.35;color:var(--ink);margin-bottom:1.25rem}
+.study-keys{display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem}
+.study-key{background:var(--accent-dim);border:1px solid rgba(232,255,0,0.18);border-radius:var(--r);padding:10px 14px;display:flex;gap:10px;align-items:flex-start}
+.study-key-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;flex-shrink:0;width:74px;padding-top:2px}
+.study-key-text{font-size:13.5px;color:var(--ink);line-height:1.5;font-weight:500}
+.study-answer-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.08em;text-transform:uppercase;margin:1.25rem 0 8px;display:flex;align-items:center;gap:8px}
+.study-answer-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.study-answer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;font-size:14px;line-height:1.85;color:var(--ink-dim);white-space:pre-wrap}
+.study-tip{font-size:12px;color:var(--ink-ghost);border-left:2px solid var(--accent);padding-left:12px;margin-top:1rem;line-height:1.6;font-style:italic}
+.rep-counter{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-ghost);letter-spacing:0.06em;text-transform:uppercase}
+.compare-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:0.75rem}
+.compare-col-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
+.compare-yours .compare-col-label{color:var(--ink-ghost)}
+.compare-model .compare-col-label{color:var(--accent)}
+
 /* CHECKLIST */
 .checklist{list-style:none}
 .checklist li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink-dim);line-height:1.5}
@@ -460,8 +460,25 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
     </table>
   </div>
 
+  <!-- STUDY CARD (rehearsal: read question + full answer + key phrases, then practice) -->
+  <div id="dp-study" class="phase" style="display:none">
+    <button class="overlay-close" style="margin-bottom:1.25rem" onclick="dpBackToHome()">&#8592; Back to questions</button>
+    <div class="q-meta" id="dp-study-tag">Study</div>
+    <div class="study-q" id="dp-study-q"></div>
+    <div class="study-keys" id="dp-study-keys"></div>
+    <div class="study-answer-label">Full model answer &mdash; read it out loud first</div>
+    <div class="study-answer" id="dp-study-answer"></div>
+    <div class="study-tip" id="dp-study-tip"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="dpGoToPractice('voice')">Practice out loud &rarr;</button>
+      <button class="btn" onclick="dpGoToPractice('text')">Practice by typing</button>
+    </div>
+    <p class="hint" style="margin-top:10px">Read the answer until it feels natural. Then practice from memory. The answer comes back after so you can compare.</p>
+  </div>
+
   <!-- DRILL QUESTION SCREEN -->
   <div id="dp-question" class="phase" style="display:none">
+    <button class="overlay-close" style="margin-bottom:1rem" onclick="dpBackToStudy()">&#8592; Back to study card</button>
     <div class="prog-track"><div class="prog-bar" id="dp-prog"></div></div>
     <div class="q-meta" id="dp-q-num">Question 1 of 7</div>
     <div class="q-text fu" id="dp-q-text"></div>
@@ -511,39 +528,38 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   <!-- REVIEW SCREEN -->
   <div id="dp-review" class="phase" style="display:none">
     <div class="prog-track"><div class="prog-bar" id="dp-prog-rv"></div></div>
-    <h2>Self-check</h2>
-    <p class="sub" style="margin-bottom:1rem">Before seeing the model answer — how did you do?</p>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.5rem">
+      <h2 style="margin:0">Compare and check</h2>
+      <span class="rep-counter" id="dp-rep-counter"></span>
+    </div>
+    <p class="sub" style="margin-bottom:1rem">Auto-detection ran on your answer. The model answer is back so you can compare line by line.</p>
 
     <div class="card">
       <span class="slabel">Auto-detection</span>
       <ul class="checklist" id="dp-checklist"></ul>
     </div>
 
-    <div class="card">
-      <span class="slabel">Your answer</span>
-      <div id="dp-ans-display" style="font-size:13px;color:var(--ink-ghost);line-height:1.7;white-space:pre-wrap;background:var(--surface);padding:12px;border-radius:var(--r)"></div>
-    </div>
-
-    <div class="card">
-      <button onclick="dpToggleModel()" style="width:100%;background:none;border:1px solid var(--border-med);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink-dim);cursor:pointer;padding:10px 14px;text-align:left;display:flex;justify-content:space-between;align-items:center;transition:background 0.15s">
-        <span>Compare with model answer</span>
-        <span style="color:var(--ink-ghost);font-size:12px">from drill script &#9662;</span>
-      </button>
-      <div id="dp-model-answer" style="display:none;margin-top:0.75rem">
-        <div class="ans-box" id="dp-model-text"></div>
-        <div class="insight" id="dp-model-insight"></div>
+    <div class="compare-grid">
+      <div class="card compare-yours" style="margin-bottom:0">
+        <div class="compare-col-label">Your answer</div>
+        <div id="dp-ans-display" style="font-size:13px;color:var(--ink-dim);line-height:1.7;white-space:pre-wrap"></div>
+      </div>
+      <div class="card compare-model" style="margin-bottom:0">
+        <div class="compare-col-label">Model answer</div>
+        <div id="dp-model-text" style="font-size:13px;color:var(--ink-dim);line-height:1.7;white-space:pre-wrap"></div>
+        <div class="insight" id="dp-model-insight" style="margin-top:10px"></div>
       </div>
     </div>
 
-    <div id="dp-ai-score-area" style="display:none" class="card">
+    <div id="dp-ai-score-area" style="display:none" class="card" style="margin-top:1rem">
       <span class="slabel">AI Score</span>
       <div id="dp-ai-score-content"><div class="dots"><span></span><span></span><span></span><span class="dots-msg">Scoring with Claude...</span></div></div>
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="dpNext()">Next &rarr;</button>
-      <button class="btn" onclick="dpRetry()">Try again</button>
-      <button class="btn-ghost" onclick="dpHome()">Home</button>
+      <button class="btn btn-primary" onclick="dpAgain()">Again &#8635;</button>
+      <button class="btn" onclick="dpNewQuestion()">Another question &rarr;</button>
+      <button class="btn-ghost" onclick="dpFinish()">Finish &amp; see summary</button>
     </div>
   </div>
 
@@ -562,7 +578,8 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
       <div id="dp-sum-focus" style="font-size:14px;line-height:1.7;color:var(--ink-dim)"></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="dpHome()">Back to home</button>
+      <button class="btn btn-primary" onclick="dpHome()">Back to questions</button>
+      <button class="btn" onclick="dpStartRandom()">Drill another &rarr;</button>
     </div>
   </div>
 
@@ -643,10 +660,12 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
   <div id="ph-loading" class="phase" style="display:none">
     <h1 id="load-title">Building your questions</h1>
     <div class="dots"><span></span><span></span><span></span><span class="dots-msg" id="load-msg">Analysing the role...</span></div>
+    <div class="btn-row"><button class="btn-ghost" onclick="abortSession()">Cancel</button></div>
   </div>
 
   <!-- QUESTION -->
   <div id="ph-question" class="phase" style="display:none">
+    <button class="overlay-close" style="margin-bottom:1rem" onclick="abortSession()">&#8592; Cancel session</button>
     <div class="prog-track"><div class="prog-bar" id="prog"></div></div>
     <div class="q-meta" id="q-meta">Question 1 of 5</div>
     <div class="q-text fu" id="q-text"></div>
@@ -683,6 +702,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
 
   <!-- SELF RATE -->
   <div id="ph-selfrate" class="phase" style="display:none">
+    <button class="overlay-close" style="margin-bottom:1rem" onclick="backToRecord()">&#8592; Back to re-record</button>
     <div class="prog-track"><div class="prog-bar" id="prog-sr"></div></div>
     <h2 id="sr-title">Rate yourself first</h2>
     <p class="sub" id="sr-sub">Before the AI scores — how did you do on each dimension?</p>
@@ -887,6 +907,10 @@ textarea{resize:vertical;min-height:90px;line-height:1.6}
       <button class="btn-ghost" onclick="closeOverlay()">Cancel</button>
     </div>
     <div id="ov-feedback" style="display:none;margin-top:1.5rem"></div>
+    <div id="ov-after" class="btn-row" style="display:none">
+      <button class="btn btn-primary" onclick="ovTryAgain()">Try again &#8635;</button>
+      <button class="btn" onclick="closeOverlay()">Back to prep</button>
+    </div>
   </div>
 </div>
 
@@ -1368,15 +1392,63 @@ function dpStartOne(q){
   DP.answers=[];DP.wk={we:0,metric:0,hedge:0,len:0};
   DP.qIdx=0;
   DP.queue=[q];
+  DP.reps=0;
+  dpShowStudy();
+}
+
+/* STUDY CARD — read question + full answer + key phrases before practising */
+function dpShowStudy(){
+  const q=DP.queue[DP.qIdx];
+  $('dp-study-tag').textContent=q.day?`${q.day} · Study`:'Study';
+  $('dp-study-q').textContent=q.q;
+  $('dp-study-answer').textContent=q.answer||'';
+  $('dp-study-tip').textContent=q.insight||q.tip||'';
+  // Extract the three key phrases: ownership line, metric line, trade-off line
+  $('dp-study-keys').innerHTML=dpBuildKeys(q);
+  dpShowPhase('dp-study');
+}
+
+function dpBuildKeys(q){
+  const ans=q.answer||'';
+  const sentences=ans.split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(Boolean);
+  const keys=[];
+  // Ownership: a sentence with "I decided / I led / I cut / I chose / I built"
+  const own=sentences.find(s=>/\bI (decided|led|cut|chose|built|owned|ran|identified|defined|set)\b/i.test(s));
+  // Metric: a sentence containing a number/percent
+  const met=sentences.find(s=>/(\d+\s*(percent|%)|up \d+|down \d+|\+\d+|-\d+|\d+\+?\/mo|\d+ percent)/i.test(s));
+  // Trade-off: a sentence naming what was cut
+  const trade=sentences.find(s=>/(cut|deprioritis|dropped|trade.?off|instead of|without being asked|I did not wait)/i.test(s));
+  if(own)keys.push({l:'Ownership',t:own});
+  if(met&&met!==own)keys.push({l:'Metric',t:met});
+  if(trade&&trade!==own&&trade!==met)keys.push({l:'Trade-off',t:trade});
+  if(!keys.length)return '';
+  return keys.map(k=>`<div class="study-key"><span class="study-key-label">${k.l}</span><span class="study-key-text">${k.t}</span></div>`).join('');
+}
+
+function dpGoToPractice(mode){
+  DP.input=mode;
   dpShowQ();
+}
+
+function dpBackToStudy(){
+  dpStopTimer();
+  if(DP.recog){try{DP.recog.stop();}catch(e){}DP.recog=null;}
+  DP.recording=false;
+  dpShowStudy();
+}
+
+function dpBackToHome(){
+  dpStopTimer();
+  if(DP.recog){try{DP.recog.stop();}catch(e){}DP.recog=null;}
+  DP.recording=false;
+  dpShowPhase('dp-home');
 }
 
 function dpShowQ(){
   const q=DP.queue[DP.qIdx];
-  const total=DP.queue.length;
-  $('dp-q-num').textContent=total>1?`Question ${DP.qIdx+1} of ${total}`:'';
+  $('dp-q-num').textContent=q.day?`${q.day} · Practice from memory`:'Practice from memory';
   $('dp-q-text').textContent=q.q;
-  $('dp-prog').style.width=total>1?((DP.qIdx/total)*100)+'%':'0%';
+  $('dp-prog').style.width='0%';
 
   // Render warn tags + tip as hints
   const hintsEl=$('dp-q-hints');
@@ -1597,15 +1669,17 @@ function dpRunChecklist(ans){
   const q=DP.queue[DP.qIdx];
   $('dp-model-text').textContent=q.answer||'';
   $('dp-model-insight').textContent=q.insight||'';
+  $('dp-rep-counter').textContent=DP.reps>0?`Rep ${DP.reps}`:'';
 
-  const pct=((DP.qIdx+1)/Math.min(DP.queue.length,7))*100;
-  $('dp-prog-rv').style.width=pct+'%';
+  $('dp-prog-rv').style.width='100%';
 
-  // AI score button if Claude key set
+  // AI score (optional) if Claude key set
   const ck=localStorage.getItem('mb_dk');
   if(ck){
     $('dp-ai-score-area').style.display='block';
     dpGetAIScore(q.q,ans,DP.timerSec);
+  }else{
+    $('dp-ai-score-area').style.display='none';
   }
 
   dpShowPhase('dp-review');
@@ -1632,20 +1706,38 @@ async function dpGetAIScore(question,answer,timeSec){
   }
 }
 
-function dpToggleModel(){
-  const d=$('dp-model-answer');
-  d.style.display=d.style.display==='none'?'block':'none';
+function dpAgain(){
+  // Repeat the SAME question. Counts as a rep.
+  DP.reps=(DP.reps||0)+1;
+  dpShowQ();
 }
 
-function dpNext(){
+function dpNewQuestion(){
+  // Different random question, fresh study card.
+  const pool=DRILL_QS.filter(x=>x.id!==(DP.queue[DP.qIdx]&&DP.queue[DP.qIdx].id));
+  const q=pool[Math.floor(Math.random()*pool.length)]||DRILL_QS[0];
+  dpStartOne(q);
+}
+
+function dpFinish(){
   dpShowSummary();
 }
 
 function dpRetry(){dpShowQ();}
 
 function dpSkip(){
-  DP.answers.push({q:DP.queue[DP.qIdx].q,a:'[skipped]',t:0});
-  dpNext();
+  // Skip now lands on the review screen with the model answer visible,
+  // so a skip still teaches instead of dumping straight to the summary.
+  const q=DP.queue[DP.qIdx];
+  DP.answers.push({q:q.q,a:'[skipped]',t:0});
+  $('dp-checklist').innerHTML='<li><span class="ci c-warn">!</span><span>Skipped — no answer to check. Read the model answer below, then hit Again.</span></li>';
+  $('dp-ans-display').textContent='(skipped)';
+  $('dp-model-text').textContent=q.answer||'';
+  $('dp-model-insight').textContent=q.insight||'';
+  $('dp-rep-counter').textContent=DP.reps>0?`Rep ${DP.reps}`:'';
+  $('dp-prog-rv').style.width='100%';
+  $('dp-ai-score-area').style.display='none';
+  dpShowPhase('dp-review');
 }
 
 function dpShowSummary(){
@@ -1685,7 +1777,7 @@ function dpHome(){dpShowPhase('dp-home');}
 function dpGoHome(){dpStopTimer();if(DP.recog){try{DP.recog.stop();}catch(e){}}DP.recog=null;dpShowPhase('dp-home');}
 
 function dpShowPhase(id){
-  ['dp-home','dp-question','dp-review','dp-summary'].forEach(p=>{
+  ['dp-home','dp-study','dp-question','dp-review','dp-summary'].forEach(p=>{
     const el=$(p);if(el)el.style.display=p===id?'block':'none';
   });
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1936,6 +2028,21 @@ function retryQuestion(){
   if(S.answers.length)S.answers.pop();if(S.scores.length)S.scores.pop();if(S.selfR.length)S.selfR.pop();
   S.selfRat={};S.transcript='';S.finalTranscript='';S.timerSec=0;stopTimer();stopRec();
   if($('text-answer'))$('text-answer').value='';showQ();
+}
+
+/* Back from self-rate to re-record the same answer (no data loss beyond the popped answer) */
+function backToRecord(){
+  if(S.answers.length)S.answers.pop();
+  S.transcript='';S.finalTranscript='';S.timerSec=0;stopTimer();stopRec();
+  if($('text-answer'))$('text-answer').value='';
+  showQ();
+}
+
+/* Abort an in-progress AI Drill session and return to setup cleanly */
+function abortSession(){
+  stopTimer();stopRec();
+  resetSessionState();updateStats();
+  showDrillPhase('ph-setup');
 }
 
 async function scoreFeedback(question,answer,timeSec){
@@ -2251,7 +2358,20 @@ function openOverlay(idx,question,modelAnswer){
   $('ov-rec-status').textContent='Ready — tap to record';
   $('ov-rec-btn').textContent='Start recording';$('ov-submit-btn').style.display='none';
   $('ov-feedback').style.display='none';$('ov-feedback').innerHTML='';
+  $('ov-after').style.display='none';
   $('practice-overlay').classList.add('open');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function ovTryAgain(){
+  OV.transcript='';OV.finalTranscript='';OV.timerSec=0;OV.recording=false;
+  $('ov-txlive').textContent='Your words will appear here...';$('ov-txlive').classList.remove('has-text');
+  $('ov-timer').textContent='0:00';$('ov-timer').className='timer-display';
+  $('ov-timer-bar').style.width='100%';$('ov-rec-dot').classList.remove('on');
+  $('ov-rec-status').textContent='Ready — tap to record';$('ov-rec-btn').textContent='Start recording';
+  $('ov-submit-btn').style.display='none';
+  $('ov-feedback').style.display='none';$('ov-feedback').innerHTML='';
+  $('ov-after').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -2315,6 +2435,7 @@ async function ovSubmit(){
   const key=localStorage.getItem('mb_dk');
   if(!key){
     $('ov-feedback').innerHTML=`<div class="card"><span class="slabel">Local check</span><div class="feedback-body">${buildLocalFeedbackHtml(OV.qText,ans,OV.timerSec)}</div></div>`;
+    $('ov-after').style.display='flex';
     return;
   }
   try{
@@ -2328,8 +2449,10 @@ async function ovSubmit(){
     if(d.critical_fix)html+=`<strong>Fix this first:</strong>\n${d.critical_fix}\n\n`;
     if(d.rewrite_sentence)html+=`<strong>Better opening:</strong>\n"${d.rewrite_sentence}"\n`;
     $('ov-feedback').innerHTML=`<div class="card"><div class="feedback-body fu">${html.trim()}</div></div>`;
+    $('ov-after').style.display='flex';
   }catch(e){
     $('ov-feedback').innerHTML=`<div class="card"><span class="slabel">Local check</span><div class="feedback-body">${buildLocalFeedbackHtml(OV.qText,ans,OV.timerSec)}</div></div>`;
+    $('ov-after').style.display='flex';
   }
 }
 
